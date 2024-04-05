@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  ADMIN
+  STUDENT
+  OFFICIAL
+  STAFF
+  WORKER
+  SECURITY
+}
+
+enum Gender {
+  M 
+  F
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique @db.VarChar(255)
+  password      String        @db.VarChar(255)
+  accountType   AccountType
+  createdAt     DateTime      @default(now())  @db.Timestamp(6)
+}
+
+model OTP {
+  id            Int           @id @default(autoincrement())
+  otp           String        @db.VarChar(255)
+  email         String        @db.VarChar(255)
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+  expiresAt     DateTime?     @db.Timestamptz
+}
+
+model InstituteStudent {
+  id                Int             @id @default(autoincrement())
+  regNo             String          @db.VarChar(255)
+  rollNo            String          @db.VarChar(255)
+  name              String          @db.VarChar(255)
+  year              Int             
+  branch            String          @db.VarChar(255)
+  gender            Gender
+  pwd               Boolean        
+  community         String          @db.VarChar(255)
+  aadharNumber      String          @db.VarChar(255)
+  dob               DateTime
+  bloodGroup        String          @db.VarChar(255)
+  fatherName        String          @db.VarChar(255)
+  motherName        String          @db.VarChar(255)
+  phone             String          @db.VarChar(255)
+  parentsPhone      String          @db.VarChar(255)
+  emergencyPhone    String          @db.VarChar(255)
+  address           String          @db.VarChar(1000)
+  photo             String          @db.VarChar(255)
+  isHosteller       Boolean
+  outingRating      Decimal
+  disciplineRatinig Decimal
+}
