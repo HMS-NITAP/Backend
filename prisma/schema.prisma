@@ -41,6 +41,7 @@ model OTP {
   expiresAt     DateTime?     @db.Timestamptz
 }
 
+// add name from obtained from OFFICIAL MAIL ID
 model InstituteStudent {
   id                Int             @id @default(autoincrement())
   regNo             String          @db.VarChar(255)
