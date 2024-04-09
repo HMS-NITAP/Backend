@@ -22,15 +22,17 @@ enum Gender {
 }
 
 model User {
-  id                  Int           @id @default(autoincrement())
-  email               String        @unique @db.VarChar(255)
-  password            String        @db.VarChar(255)
-  accountType         AccountType
-  createdAt           DateTime      @default(now())  @db.Timestamp(6)
-  instituteStudent    InstituteStudent?
-  worker              Worker?
-  security            Security?
-  official            Official?
+  id                      Int                 @id @default(autoincrement())
+  email                   String              @unique @db.VarChar(255)
+  password                String              @db.VarChar(255)
+  accountType             AccountType
+  createdAt               DateTime            @default(now())  @db.Timestamp(6)
+  token                   String?             @default("") @db.VarChar(255) 
+  resetPasswordExpiresIn  DateTime            @default(now())  @db.Timestamp(6)
+  instituteStudent        InstituteStudent?
+  worker                  Worker?
+  security                Security?
+  official                Official?
 }
 
 model OTP {

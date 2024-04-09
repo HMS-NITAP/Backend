@@ -1,4 +1,4 @@
-exports.passwordUpdated = (email) => {
+const resetPassword = (token) => {
 	return `<!DOCTYPE html>
     <html>
     
@@ -49,7 +49,18 @@ exports.passwordUpdated = (email) => {
             .highlight {
                 font-weight: bold;
             }
-            
+            .heading{
+                text-align:center;
+                font-size: 30px;
+                font-weight:600;
+                margin-bottom:30px;
+            }
+            .token{
+                color:black;
+                font-size:32px;
+                font-weight:900;
+                margin:0px auto;
+            }
         </style>
     
     </head>
@@ -57,20 +68,21 @@ exports.passwordUpdated = (email) => {
     <body>
         <div class="container">
         <a href="https://www.nitandhra.ac.in/main/"><img class="logo"
-					src="https://media.licdn.com/dms/image/C560BAQEIWah9gNUmvQ/company-logo_200_200/0/1642324574360/national_institute_of_technology_andhra_pradesh_logo?e=1720656000&v=beta&t=Q_CV4msLCgKKiqiDxASvbOJHrCAgWivm7_qGxahLo1o" alt="NITAP Logo"></a>
-        <div class="message">Password Update Confirmation</div>
-        <div class="body">
-            <p>Hey ////////</p>
-            <p>Your password has been successfully updated for the email <span class="highlight">${email}</span>.
-            </p>
-            <p>If you did not request this password change, please contact us immediately to secure your account.</p>
-        </div>
-        <div class="support">If you have any questions or need further assistance, please feel free to reach out to us
-            at
-            <a href="mailto:info@HMSNITAP.com">info@HMSNITAP.com</a>. We are here to help!
-        </div>
+            src="https://media.licdn.com/dms/image/C560BAQEIWah9gNUmvQ/company-logo_200_200/0/1642324574360/national_institute_of_technology_andhra_pradesh_logo?e=1720656000&v=beta&t=Q_CV4msLCgKKiqiDxASvbOJHrCAgWivm7_qGxahLo1o" alt="NITAP Logo"></a>
+            <div class="message">Reset Password Link</div>
+            <div class="body">
+                <div class="heading">Copy and paste the below token to proceed with resetting of your account password.</div>
+                <p class="token">${token}</p>
+                </p>
+                <p>If you did not request this password change, please contact us immediately to secure your account.</p>
+            </div>
+                <a href="mailto:info@studynotion.com">info@studynotion.com</a>. We are here to help!
+            </div>
+            
         </div>
     </body>
     
-    </html>`;
+    </html>`; 
 };
+
+module.exports = resetPassword;

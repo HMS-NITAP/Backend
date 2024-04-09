@@ -3,9 +3,11 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const SendEmail = require("../utilities/MailSender")
 const emailVerification = require('../mailTemplates/emailVerification');
-const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
-const { PrismaClient } = require('@prisma/client')
+// const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
+const resetPassword = require('../mailTemplates/resetPassword');
+const crypto = require('crypto');
 
+const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 
 
@@ -13,7 +15,7 @@ exports.sendOTP = async (req,res) => {
     try{
         const {email} = req.body;
 
-        const isEmailExistsAlready = await Prisma.user.findFirst({ where: { email } });
+        const isEmailExistsAlready = await Prisma.user.findUnique({where:{email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
                 success:false,
@@ -31,7 +33,6 @@ exports.sendOTP = async (req,res) => {
         let otp = OTPgenerator.generate(6,options);
         let result = await Prisma.oTP.findFirst({ where: { otp } });
         while(result){
-            // avoiding duplicate OTPs
             otp = OTPgenerator.generate(6,options);
             result = await Prisma.oTP.findFirst({ where: { otp } });
         }
@@ -73,14 +74,12 @@ exports.signup = async(req,res) => {
                 message:"Some data Not Found",
             })
         }
-
         if(password !== confirmPassword){
             return res.status(400).json({
                 success:false,
                 message:"Both passwords are not matching",
             });
         };
-
         const isUserExistsAlready = await Prisma.user.findFirst({where : {email}});
         if(isUserExistsAlready){
             return res.status(401).json({
@@ -88,12 +87,11 @@ exports.signup = async(req,res) => {
                 message:"User Already Registered",
             });
         };
-
+        
         const mostRecentOTP = await Prisma.oTP.findFirst({
             where: { email },
             orderBy: { createdAt: 'desc' }
         });
-
         if(!mostRecentOTP){
             return res.status(404).json({
                 success:false,
@@ -107,14 +105,13 @@ exports.signup = async(req,res) => {
         };
 
         const hashedPassword = await bcrypt.hash(password,10);
-
         await Prisma.user.create({data:{email,password:hashedPassword,accountType}});
-
         return res.status(200).json({
             success:true,
             message:"User Registered Successfully",
         })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Signup Operation Failed",
@@ -125,7 +122,6 @@ exports.signup = async(req,res) => {
 exports.login = async(req,res) => {
     try{
         const {email,password} = req.body;
-
         if(!email || !password){
             return res.status(404).json({
                 success:false,
@@ -134,7 +130,6 @@ exports.login = async(req,res) => {
         }
 
         const ifUserExists = await Prisma.user.findFirst({where:{email}});
-
         if(!ifUserExists){
             return res.status(404).json({
                 success:false,
@@ -166,13 +161,15 @@ exports.login = async(req,res) => {
                 message : "Logged In Successfully",
             })
         }else{
+            console.log("Password Not Matching");
             return res.status(400).json({
                 success:false,
-                message:"Log In Umsuccessful",
+                message:"Log In Unsuccessful",
             })
         }
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Login operation failed",
@@ -180,43 +177,126 @@ exports.login = async(req,res) => {
     }
 }
 
-exports.changePassword = async(req,res) => {
-    try{
-        const {oldPassword,newPassword} = req.body;
-        const id = req.user.id;
+// exports.changePassword = async(req,res) => {
+//     try{
+//         const {oldPassword,newPassword} = req.body;
+//         const id = req.user.id;
 
-        const user = await Prisma.user.findFirst({where : {id}});
-        if(!user){
+//         const user = await Prisma.user.findFirst({where : {id}});
+//         if(!user){
+//             return res.status(404).json({
+//                 success:false,
+//                 message:"Invalid User Id",
+//             })
+//         }
+
+//         const passwordValid = await bcrypt.compare(oldPassword,user.password);
+
+//         if(!passwordValid){
+//             return res.status(400).json({
+//                 success:false,
+//                 message:"Old Password Incorrect",
+//             });
+//         };
+
+//         const newHashedPassword = await bcrypt.hash(newPassword,10);
+//         const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
+
+//         try{
+//             await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
+//         }catch(e){
+//             return res.status(400).json({
+//                 success:false,
+//                 message:"Error sending Updated Password Email",
+//             });
+//         }
+//     }catch(e){
+//         return res.status(400).json({
+//             success:false,
+//             message:"Password cannot be changed",
+//         })
+//     }
+// }
+
+exports.resetPasswordToken = async(req,res) => {
+    try{
+        const {email} = req.body;
+
+        const ifUserExists = await Prisma.user.findFirst({where : {email}});
+        if(!ifUserExists){
             return res.status(404).json({
                 success:false,
-                message:"Invalid User Id",
-            })
-        }
-
-        const passwordValid = await bcrypt.compare(oldPassword,user.password);
-
-        if(!passwordValid){
-            return res.status(400).json({
-                success:false,
-                message:"Old Password Incorrect",
-            });
-        };
-
-        const newHashedPassword = await bcrypt.hash(newPassword,10);
-        const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
-
-        try{
-            await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
-        }catch(e){
-            return res.status(400).json({
-                success:false,
-                message:"Error sending Updated Password Email",
+                message:"Email not yet Registered",
             });
         }
+
+        const token = crypto.randomBytes(20).toString("hex");
+
+        await Prisma.user.update({
+            where: { email },
+            data: {
+              token:token,
+              resetPasswordExpiresIn: new Date(Date.now() + 5 * 60 * 1000),
+            },
+        });
+        await SendEmail(email,"Reset Password Link | NIT Andhra Pradesh HMS",resetPassword(token));
+        return res.status(200).json({
+            success:true,
+            message:"Reset Password Token Mail Sent Successfully",
+        })
     }catch(e){
         return res.status(400).json({
             success:false,
-            message:"Password cannot be changed",
+            message:"Reset Password Token Generation Failed",
+        })
+    }
+}
+
+exports.resetPassword = async(req,res) => {
+    try{
+        const {token,newPassword,confirmNewPassword} = req.body;
+
+        if(newPassword !== confirmNewPassword){
+            return res.status(400).json({
+                success:false,
+                message:"Both Passwords don't match",
+            })
+        }
+
+        const user = await Prisma.user.findFirst({where:{token}});
+        if(!user){
+            console.log("fdfdfr");
+            return res.status(404).json({
+                success:false,
+                message:"Token Invalid",
+            });
+        }
+        console.log("user" ,user);
+        if(user.resetPasswordExpiresIn < Date.now()){
+            return res.status(400).json({
+                success:false,
+                message:"Token Expired",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword,10);
+
+        await Prisma.user.update({
+            where: { id:user.id },
+            data: {
+              password:hashedPassword,
+            },
+        });
+
+        return res.status(200).json({
+            success:true,
+            message:"Password Reset Successful",
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Reset Password Failed",
         })
     }
 }

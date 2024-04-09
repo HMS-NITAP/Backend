@@ -11,6 +11,8 @@ CREATE TABLE "User" (
     "password" VARCHAR(255) NOT NULL,
     "accountType" "AccountType" NOT NULL,
     "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "token" VARCHAR(255) DEFAULT '',
+    "resetPasswordExpiresIn" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
