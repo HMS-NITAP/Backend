@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken');
 const { PrismaClient } = require("@prisma/client");
 const accountType = require("../constant/AccountType");
 
@@ -53,7 +54,8 @@ exports.isStudent = async (req,res,next) => {
 
 exports.isOfficial = async (req,res,next) => {
     try{
-        const details = await Prisma.user.findUnique({email:req.user.email});
+        const details = await Prisma.user.findUnique({where : {email:req.user.email}});
+        // console.log("Details : ",details);
         if(details.accountType !== (accountType.Official || accountType.Admin)){
             return res.status(401).json({
                 success:false,

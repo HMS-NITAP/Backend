@@ -21,6 +21,12 @@ enum Gender {
   F
 }
 
+enum RoomType {
+  Seater1
+  Seater2
+  Seater4
+}
+
 model User {
   id                      Int                 @id @default(autoincrement())
   email                   String              @unique @db.VarChar(255)
@@ -33,6 +39,7 @@ model User {
   worker                  Worker?
   security                Security?
   official                Official?
+  announcements           Announcement[]
 }
 
 model OTP {
@@ -43,7 +50,7 @@ model OTP {
   expiresAt     DateTime?     @db.Timestamptz
 }
 
-// add name from obtained from OFFICIAL MAIL ID
+// add name obtained from OFFICIAL MAIL ID
 model InstituteStudent {
   id                Int             @id @default(autoincrement())
   regNo             String          @db.VarChar(255)
@@ -91,6 +98,7 @@ model Security {
   phone         String        @db.VarChar(255)
   user          User          @relation(fields: [userId], references: [id])
   userId        Int           @unique
+  hostelBlock   HostelBlock?
 }
 
 model Official {
@@ -102,4 +110,38 @@ model Official {
   phone         String        @db.VarChar(255)
   user          User          @relation(fields: [userId], references: [id])
   userId        Int           @unique
+  hostelBlock   HostelBlock?  
+}
+
+model Announcement {
+  id             Int            @id @default(autoincrement())
+  title          String         @db.VarChar(255)
+  textContent    String         @db.VarChar(255)
+  fileContent    String[]       @db.VarChar(255)
+  createdAt      DateTime       @default(now()) @db.Timestamp(6)
+  createdBy      User           @relation(fields: [createdById], references: [id])
+  createdById    Int 
+}
+
+model HostelBlock {
+  id            Int           @id @default(autoincrement())
+  name          String        @db.VarChar(255)
+  blockId       String        @db.VarChar(255)
+  image         String        @db.VarChar(255)
+  roomType      RoomType
+  gender        Gender
+  floorCount    Int
+  capacity      Int
+  warderId      Int           @unique
+  warden        Official      @relation(fields: [warderId],references: [id])
+  securityId    Int           @unique
+  security      Security      @relation(fields: [securityId],references: [id])
+}
+
+model MessHall {
+  id            Int           @id @default(autoincrement())
+  name          String        @db.VarChar(255)
+  hallName      String        @db.VarChar(255)
+  gender        Gender
+  capacity      Int
 }
