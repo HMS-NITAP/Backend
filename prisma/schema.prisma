@@ -56,7 +56,7 @@ model InstituteStudent {
   regNo             String          @db.VarChar(255)
   rollNo            String          @db.VarChar(255)
   name              String          @db.VarChar(255)
-  year              String             
+  year              String          @db.VarChar(255)  
   branch            String          @db.VarChar(255)
   gender            Gender
   pwd               Boolean        
@@ -72,8 +72,8 @@ model InstituteStudent {
   address           String          @db.VarChar(1000)
   photo             String          @db.VarChar(255)
   isHosteller       Boolean
-  outingRating      String
-  disciplineRating  String
+  outingRating      String          @db.VarChar(255)
+  disciplineRating  String          @db.VarChar(255)
   user              User            @relation(fields: [userId],references: [id])
   userId            Int             @unique
 }
