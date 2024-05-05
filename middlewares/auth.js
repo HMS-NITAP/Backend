@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require("@prisma/client");
-const accountType = require("../constant/AccountType");
+const {AccountType} = require("../constant/AccountType");
+
 
 const Prisma = new PrismaClient();
 
+
 exports.auth = async (req,res,next) => {
     try{
+        console.log("HIII");
         const token = req.cookies.token || req.body.token || req.header("Authorization").replace("Bearer ","");
 
         if(!token){
@@ -17,6 +20,7 @@ exports.auth = async (req,res,next) => {
 
         try{
             const decode = jwt.verify(token,process.env.JWT_SECRET);
+            console.log("Decode : ",decode);
             req.user = decode;
         }catch(e){
             return res.status(400).json({
@@ -36,8 +40,12 @@ exports.auth = async (req,res,next) => {
 
 exports.isStudent = async (req,res,next) => {
     try{
-        const details = await Prisma.user.findUnique({email:req.user.email});
-        if(details.accountType !== (accountType.Student || accountType.Admin)){
+        // const details = await Prisma.user.findUnique({where : {email:req.user.email}});
+        const details = await Prisma.user.findUnique({where : {email : req.user.email}});
+        console.log("Deta",details);
+        console.log(AccountType);
+        console.log(AccountType.Student);
+        if(details.accountType !== (AccountType.Student || AccountType.Admin)){
             return res.status(401).json({
                 success:false,
                 message:"Only Student is Authorized in this Route",

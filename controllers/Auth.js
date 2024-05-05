@@ -87,7 +87,6 @@ exports.signup = async(req,res) => {
                 message:"User Already Registered",
             });
         };
-        
         const mostRecentOTP = await Prisma.oTP.findFirst({
             where: { email },
             orderBy: { createdAt: 'desc' }
