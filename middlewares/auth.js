@@ -7,7 +7,6 @@ const Prisma = new PrismaClient();
 exports.auth = async (req,res,next) => {
     try{
         const token = req.cookies.token || req.body.token || req.header("Authorization").replace("Bearer ","");
-
         if(!token){
             return res.status(404).json({
                 success:false,
@@ -36,8 +35,8 @@ exports.auth = async (req,res,next) => {
 
 exports.isStudent = async (req,res,next) => {
     try{
-        const details = await Prisma.user.findUnique({email:req.user.email});
-        if(details.accountType !== (accountType.Student || accountType.Admin)){
+        const details = await Prisma.user.findUnique({where : {email:req.user.email}});
+        if(details.accountType !== "STUDENT"){
             return res.status(401).json({
                 success:false,
                 message:"Only Student is Authorized in this Route",
@@ -55,8 +54,8 @@ exports.isStudent = async (req,res,next) => {
 exports.isOfficial = async (req,res,next) => {
     try{
         const details = await Prisma.user.findUnique({where : {email:req.user.email}});
-        // console.log("Details : ",details);
-        if(details.accountType !== (accountType.Official || accountType.Admin)){
+        console.log("Details : ",details);
+        if(details.accountType !== "OFFICIAL"){
             return res.status(401).json({
                 success:false,
                 message:"Only Official is Authorized in this Route",

@@ -27,6 +27,17 @@ enum RoomType {
   Seater4
 }
 
+enum OutingApplicationType {
+  Local
+  NonLocal
+}
+
+enum ApplicationStatus {
+  ACCEPTED
+  REJECTED
+  PENDING
+}
+
 model User {
   id                      Int                 @id @default(autoincrement())
   email                   String              @unique @db.VarChar(255)
@@ -53,29 +64,31 @@ model OTP {
 // add name obtained from OFFICIAL MAIL ID
 model InstituteStudent {
   id                Int             @id @default(autoincrement())
-  regNo             String          @db.VarChar(255)
-  rollNo            String          @db.VarChar(255)
-  name              String          @db.VarChar(255)
-  year              String          @db.VarChar(255)  
-  branch            String          @db.VarChar(255)
-  gender            Gender
-  pwd               Boolean        
-  community         String          @db.VarChar(255)
-  aadharNumber      String          @db.VarChar(255)
-  dob               DateTime
-  bloodGroup        String          @db.VarChar(255)
-  fatherName        String          @db.VarChar(255)
-  motherName        String          @db.VarChar(255)
-  phone             String          @db.VarChar(255)
-  parentsPhone      String          @db.VarChar(255)
-  emergencyPhone    String          @db.VarChar(255)
-  address           String          @db.VarChar(1000)
-  photo             String          @db.VarChar(255)
-  isHosteller       Boolean
-  outingRating      String          @db.VarChar(255)
-  disciplineRating  String          @db.VarChar(255)
+  regNo             String?         @db.VarChar(255)
+  rollNo            String?         @db.VarChar(255)
+  name              String?         @db.VarChar(255)
+  year              String?         @db.VarChar(255)  
+  branch            String?         @db.VarChar(255)
+  gender            Gender?
+  pwd               Boolean?        
+  community         String?         @db.VarChar(255)
+  aadharNumber      String?         @db.VarChar(255)
+  dob               DateTime?
+  bloodGroup        String?         @db.VarChar(255)
+  fatherName        String?         @db.VarChar(255)
+  motherName        String?         @db.VarChar(255)
+  phone             String?         @db.VarChar(255)
+  parentsPhone      String?         @db.VarChar(255)
+  emergencyPhone    String?         @db.VarChar(255)
+  address           String?         @db.VarChar(1000)
+  // photo             String          @db.VarChar(255)
+  isHosteller       Boolean?
+  outingRating      Decimal?         
+  disciplineRating  Decimal?         
   user              User            @relation(fields: [userId],references: [id])
   userId            Int             @unique
+  outingApplication OutingApplication? 
+  // outingApplication OutingApplication @relation(fields: [outingApplication], references: [])
 }
 
 model Worker {
@@ -103,21 +116,21 @@ model Security {
 
 model Official {
   id            Int           @id @default(autoincrement())
-  empId         String        @db.VarChar(255)
-  name          String        @db.VarChar(255)
-  designation   String        @db.VarChar(255)
-  gender        Gender       
-  phone         String        @db.VarChar(255)
+  empId         String?       @db.VarChar(255)
+  name          String?       @db.VarChar(255)
+  designation   String?       @db.VarChar(255)
+  gender        Gender?      
+  phone         String?       @db.VarChar(255)
   user          User          @relation(fields: [userId], references: [id])
   userId        Int           @unique
-  hostelBlock   HostelBlock?  
+  // hostelBlock   HostelBlock?  
 }
 
 model Announcement {
   id             Int            @id @default(autoincrement())
   title          String         @db.VarChar(255)
   textContent    String         @db.VarChar(255)
-  fileContent    String[]       @db.VarChar(255)
+  fileContent    String         @db.VarChar(255)
   createdAt      DateTime       @default(now()) @db.Timestamp(6)
   createdBy      User           @relation(fields: [createdById], references: [id])
   createdById    Int 
@@ -132,8 +145,8 @@ model HostelBlock {
   gender        Gender
   floorCount    Int
   capacity      Int
-  warderId      Int           @unique
-  warden        Official      @relation(fields: [warderId],references: [id])
+  // warderId      Int           @unique
+  // warden        Official      @relation(fields: [warderId],references: [id])
   securityId    Int           @unique
   security      Security      @relation(fields: [securityId],references: [id])
 }
@@ -144,4 +157,16 @@ model MessHall {
   hallName      String        @db.VarChar(255)
   gender        Gender
   capacity      Int
+}
+
+model OutingApplication {
+  id                        Int                                @default(autoincrement()) @id
+  type                      OutingApplicationType               
+  from                      String                             @db.VarChar(255)
+  to                        String                             @db.VarChar(255)
+  placeOfVisit              String                             @db.VarChar(255)
+  purpose                   String                             @db.VarChar(255)
+  status                    ApplicationStatus
+  instituteStudentId        Int                                @unique
+  instituteStudent          InstituteStudent                   @relation(fields: [instituteStudentId], references: [id])
 }

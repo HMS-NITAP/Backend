@@ -15,7 +15,9 @@ exports.sendOTP = async (req,res) => {
     try{
         const {email} = req.body;
 
-        const isEmailExistsAlready = await Prisma.user.findUnique({where:{email}});
+
+        // const isEmailExistsAlready = await Prisma.user.findUnique({where:{email}});
+        const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
                 success:false,
@@ -66,6 +68,7 @@ exports.sendOTP = async (req,res) => {
 // Handle expire date of OTP --> delete them after 5 mins time
 exports.signup = async(req,res) => {
     try{
+        console.log("Here");
         const {email,password,confirmPassword,accountType,otp} = req.body;
 
         if(!email || !password || !confirmPassword || !accountType || !otp){
@@ -105,7 +108,13 @@ exports.signup = async(req,res) => {
         };
 
         const hashedPassword = await bcrypt.hash(password,10);
-        await Prisma.user.create({data:{email,password:hashedPassword,accountType}});
+        const details = await Prisma.user.create({data:{email,password:hashedPassword,accountType}});
+        console.log("Details : ",details);
+        if(accountType === "STUDENT"){
+            await Prisma.instituteStudent.create({data : {regNo:null,rollNo:null,name:null,year:null,branch:null,gender:null,pwd:null,community:null,aadharNumber:null,dob:null,bloodGroup:null,fatherName:null,motherName:null,phone:null,parentsPhone:null,emergencyPhone:null,address:null,isHosteller:null,outingRating:5.0,disciplineRating:5.0,user: {connect: { id: details.id }}}});
+        }else if(accountType === "OFFICIAL"){
+            await Prisma.official.create({data : {empId:null,name:null,designation:null,gender:null,phone:null,user: {connect: { id: details.id }}}});
+        }
         return res.status(200).json({
             success:true,
             message:"User Registered Successfully",
