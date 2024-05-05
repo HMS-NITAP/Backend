@@ -145,3 +145,36 @@ model MessHall {
   gender        Gender
   capacity      Int
 }
+
+
+
+#new additional schemas:
+
+model MessFeedback {
+  id         Int      @id @default(autoincrement())
+  data       DateTime
+  type       String
+  rating     Int
+  review     String
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+
+model Complaint {
+  id             Int       @id @default(autoincrement())
+  type           String
+  summary        String
+  detailed       String
+  status         String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  remark         String?
+  file           String?
+  complaineeId   Int
+  complainee     Student   @relation(fields: [complaineeId], references: [id])
+  userId         Int
+  user           User      @relation(fields: [userId], references: [id])
+}
