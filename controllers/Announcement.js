@@ -56,6 +56,7 @@ exports.createAnnouncement = async(req,res) => {
         })
 
     }catch(e){
+        console.log("ERROR INANN",e);
         return res.status(400).json({
             success:false,
             message:"Can't create Announcement",
