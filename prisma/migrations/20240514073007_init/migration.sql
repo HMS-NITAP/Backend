@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "HostelBlock" ALTER COLUMN "floorCount" SET DATA TYPE VARCHAR(255),
+ALTER COLUMN "capacity" SET DATA TYPE VARCHAR(255);
+
+-- AlterTable
+ALTER TABLE "MessHall" ALTER COLUMN "capacity" SET DATA TYPE VARCHAR(255);

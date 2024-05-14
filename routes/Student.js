@@ -4,10 +4,11 @@ const router = express.Router();
 const {authMiddlewares} = require("../middlewares");
 const {studentController} = require('../controllers');
 
-router.get("/getAllApplication",studentController.getAllApplication);
-router.post('/createOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
-router.put('/approveOutingApplication',authMiddlewares.auth,authMiddlewares.isOfficial,studentController.approveOutingApplication);
-router.put('/rejectOutingApplication',authMiddlewares.auth,authMiddlewares.isOfficial,studentController.rejectOutingApplication);
-router.post('/getStudentAllApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAllApplication);
+router.post('/CreateOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
+router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
+router.get('/getStudentPendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentPendingOutingApplication);
+router.get('/getStudentAcceptedOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAcceptedOutingApplication);
+router.get('/getStudentRejectedOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentRejectedOutingApplication);
+
 
 module.exports = router;

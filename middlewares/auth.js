@@ -33,6 +33,24 @@ exports.auth = async (req,res,next) => {
     }
 }
 
+exports.isAdmin = async (req,res,next) => {
+    try{
+        const details = await Prisma.user.findUnique({where : {email:req.user.email}});
+        if(details.accountType !== "ADMIN"){
+            return res.status(401).json({
+                success:false,
+                message:"Only Admin is Authorized in this Route",
+            })
+        }
+        next();
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"User Role cannot be verified",
+        })
+    }
+}
+
 exports.isStudent = async (req,res,next) => {
     try{
         const details = await Prisma.user.findUnique({where : {email:req.user.email}});

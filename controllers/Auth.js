@@ -14,9 +14,13 @@ const Prisma = new PrismaClient();
 exports.sendOTP = async (req,res) => {
     try{
         const {email} = req.body;
+        if(!email){
+            return res.status(404).json({
+                success:false,
+                message:"Email is missing",
+            })
+        }
 
-
-        // const isEmailExistsAlready = await Prisma.user.findUnique({where:{email}});
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
@@ -158,6 +162,8 @@ exports.login = async(req,res) => {
             ifUserExists.token = token;
             ifUserExists.password = undefined;
 
+            await Prisma.user.update({where:{id:ifUserExists.id}, data:{token:token}});
+
             const options2 = {
                 expires : new Date(Date.now() + 7*24*60*60*1000), // 7days
                 httpOnly : true,
@@ -186,46 +192,46 @@ exports.login = async(req,res) => {
     }
 }
 
-// exports.changePassword = async(req,res) => {
-//     try{
-//         const {oldPassword,newPassword} = req.body;
-//         const id = req.user.id;
+exports.changePassword = async(req,res) => {
+    try{
+        const {oldPassword,newPassword} = req.body;
+        const id = req.user.id;
 
-//         const user = await Prisma.user.findFirst({where : {id}});
-//         if(!user){
-//             return res.status(404).json({
-//                 success:false,
-//                 message:"Invalid User Id",
-//             })
-//         }
+        const user = await Prisma.user.findFirst({where : {id}});
+        if(!user){
+            return res.status(404).json({
+                success:false,
+                message:"Invalid User Id",
+            })
+        }
 
-//         const passwordValid = await bcrypt.compare(oldPassword,user.password);
+        const passwordValid = await bcrypt.compare(oldPassword,user.password);
 
-//         if(!passwordValid){
-//             return res.status(400).json({
-//                 success:false,
-//                 message:"Old Password Incorrect",
-//             });
-//         };
+        if(!passwordValid){
+            return res.status(400).json({
+                success:false,
+                message:"Old Password Incorrect",
+            });
+        };
 
-//         const newHashedPassword = await bcrypt.hash(newPassword,10);
-//         const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
+        const newHashedPassword = await bcrypt.hash(newPassword,10);
+        const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
 
-//         try{
-//             await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
-//         }catch(e){
-//             return res.status(400).json({
-//                 success:false,
-//                 message:"Error sending Updated Password Email",
-//             });
-//         }
-//     }catch(e){
-//         return res.status(400).json({
-//             success:false,
-//             message:"Password cannot be changed",
-//         })
-//     }
-// }
+        try{
+            await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
+        }catch(e){
+            return res.status(400).json({
+                success:false,
+                message:"Error sending Updated Password Email",
+            });
+        }
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Password cannot be changed",
+        })
+    }
+}
 
 exports.resetPasswordToken = async(req,res) => {
     try{
