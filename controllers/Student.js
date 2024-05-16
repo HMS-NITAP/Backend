@@ -185,3 +185,198 @@ exports.getStudentRejectedOutingApplication = async(req,res) => {
         })
     }
 }
+
+exports.createHostelComplaint = async (req,res) => {
+    try{
+        const {id} = req.user;
+        const {category, about, status} = req.body;
+
+        if(!id || !category || !about || !status){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.instituteStudentId}});
+        return res.status(200).json({
+            success:false,
+            message:"Hostel Complaint Created Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Failed to create Complaint"
+        })
+    }
+}
+
+exports.deleteHostelComplaint = async (req,res) => {
+    try{
+        const {id} = req.user;
+        const {complaintId} = req.body;
+
+        if(!id || !complaintId){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        const complaintDetails = await Prisma.hostelComplaint.findUnique({where : {id : complaintId}});
+        if(!complaintDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Complaint Not Found",
+            })
+        }
+
+        if(complaintDetails?.instituteStudentId != studentDetails?.id){
+            return res.status(403).json({
+                success:false,
+                message:"Unauthorized Operation",
+            })
+        }
+
+        await Prisma.hostelComplaint.delete({where : {id : complaintId}});
+
+        return res.status(200).json({
+            success:false,
+            message:"Hostel Complaint Deleted Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Failed to delete Complaint"
+        })
+    }
+}
+
+exports.showAllStudentComplaints = async (req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"Id is Missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
+
+        const complaints = await Prisma.hostelComplaint.findMany({where:{instituteStudentId:studentDetails?.id}, orderBy:{createdAt:'desc'}});
+        return res.status(200).json({
+            success:true,
+            message:"Successfully Fetched All complaints",
+            data:complaints,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch All Complaints",
+        })
+    }
+}
+
+exports.createMessFeedBack = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const {rating, review, session} = req.body;
+
+        if(!id || !rating || !review || !session){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        const messHallId = await studentDetails?.messHallId;
+        if(!messHallId){
+            return res.status(404).json({
+                success:false,
+                message:"Mess Hall ID Not Found",
+            })
+        }
+
+        const messHallDetails = await Prisma.messHall.findUnique({where : {id:messHallId}});
+        if(!messHallDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Mess Hall Not Found",
+            })
+        }
+
+        await Prisma.messRatingAndReview.create({data : {rating,review,session,messHallId}});
+        return res.status(200).json({
+            success:false,
+            message:"Created Mess Rating And Review Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Create Mess FeedBack",
+        })
+    }
+}
+
+exports.deleteMessFeedBack = async(req,res) => {
+    try{
+        const {feedBackId} = req.body;
+
+        if(!feedBackId){
+            return res.status(404).json({
+                success:false,
+                message:"Mess FeedBack Not Found",
+            })
+        }
+
+        await Prisma.messRatingAndReview.delete({where:{id:feedBackId}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Deleted Mess Rating And Review Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Create Mess FeedBack",
+        })
+    }
+}
+
+exports.createMedicalIssue = async(req,res) => {
+    try{
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to create Medical Issue",
+        })
+    }
+}

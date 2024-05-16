@@ -2,23 +2,6 @@ const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 const {uploadMedia} = require('../utilities/MediaUploader');
 
-// exports.getAllApplication = async (_,res) => {
-//     try{
-//         const data = await Prisma.outingApplication.findMany({});
-
-//         return res.status(200).json({
-//             success:true,
-//             message:"Operation Successful",
-//             data:data,
-//         })
-//     }catch(e){
-//         return res.status(400).json({
-//             success:false,
-//             message:e,
-//         })
-//     }
-// }
-
 exports.createHostelBlock = async(req,res) => {
     try{
         const {hostelName,roomType,gender,floorCount,capacity} = req.body;
@@ -190,6 +173,53 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Error Removing Warden From Hostel Block",
+        })
+    }
+}
+
+exports.createMessHall = async(req,res) => {
+    try{
+        const{name, hallName, gender, capacity} = req.body;
+        if(!name || !hallName || !gender || !capacity){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        await Prisma.messHall.create({data : {name, hallName, gender, capacity}});
+        return res.status(200).json({
+            success:true,
+            message:"Mess Hall Created Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to create Mess Hall",
+        })
+    }
+}
+
+exports.deleteMessHall = async(req,res) => {
+    try{
+        const {messHallId} = req.body;
+        if(!messHallId){
+            return res.status(404).json({
+                success:false,
+                message:"Mess Hall ID is missing",
+            })
+        }
+
+        await Prisma.messHall.delete({where : {id : messHallId}});
+        return res.status(200).json({
+            success:true,
+            message:"Mess Hall Deleted Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to delete Mess Hall",
         })
     }
 }

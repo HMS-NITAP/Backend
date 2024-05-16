@@ -305,3 +305,250 @@ exports.rejectPendingOutingApplication = async(req,res) => {
         })
     }
 }
+
+exports.getAllUnresolvedComplaintsByHostelBlock = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"Id Not Found",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where : {userId : id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+
+        const hostelBlockId = officialDetails?.hostelBlockId;
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block ID Not Found",
+            })
+        }
+
+        const unresolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"UNRESOLVED"}, orderBy:{createdAt:'asc'}});
+        return res.status(200).json({
+            success:true,
+            message:"Successfully Fetched All UnResolved Complaints",
+            data:unresolvedComplaints,
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Complaints"
+        })
+    }
+}
+
+exports.getAllResolvedComplaintsByHostelBlock = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"Id Not Found",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where : {userId : id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+
+        const hostelBlockId = officialDetails?.hostelBlockId;
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block ID Not Found",
+            })
+        }
+
+        const resolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"RESOLVED"}, orderBy:{createdAt:'asc'}});
+        return res.status(200).json({
+            success:true,
+            message:"Successfully Fetched All Resolved Complaints",
+            data:resolvedComplaints,
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Complaints"
+        })
+    }
+}
+
+exports.resolveHostelComplaint = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const {complaintId} = req.body;
+
+        if(!id || !complaintId){
+            return res.status(404).json({
+                success:false,
+                message:"Id's Missing",
+            })
+        }
+
+        const complaintDetails = await Prisma.hostelComplaint.findUnique({where : {id:complaintId}});
+        if(!complaintDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Complaint Not Found",
+            })
+        }
+
+        if(complaintDetails?.status === "RESOLVED"){
+            return res.status(402).json({
+                success:false,
+                message:"Complaint Is Already Resolved",
+            })
+        }
+
+        await Prisma.hostelBlock.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
+        return res.status(200).json({
+            success:true,
+            message:"Resolved the Complaint Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:true,
+            message:"Unable to Resolve the Hostel Complaint",
+        })
+    }
+}
+
+exports.unresolveHostelComplaint = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const {complaintId} = req.body;
+
+        if(!id || !complaintId){
+            return res.status(404).json({
+                success:false,
+                message:"Id's Missing",
+            })
+        }
+
+        const complaintDetails = await Prisma.hostelComplaint.findUnique({where : {id:complaintId}});
+        if(!complaintDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Complaint Not Found",
+            })
+        }
+
+        if(complaintDetails?.status === "UNRESOLVED"){
+            return res.status(402).json({
+                success:false,
+                message:"Complaint Is Already Unresolved",
+            })
+        }
+
+        await Prisma.hostelBlock.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
+        return res.status(200).json({
+            success:true,
+            message:"Unresolved the Complaint Successfully",
+        })
+        
+    }catch(e){
+        return res.status(400).json({
+            success:true,
+            message:"Unable to unresolve the Hostel Complaint",
+        })
+    }
+}
+
+exports.giveStudentPresent = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const {newPresentDate,studentId} = req.body;
+        if(!id || !newPresentDate || !studentId){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where : {userId:id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+
+        const hostelBlockId = officialDetails?.hostelBlockId;
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block ID Not Found",
+            })
+        }
+
+        await Prisma.studentAttendence.update({where:{studentId,hostelBlockId}, data:{presentDate:{push:newPresentDate}}});
+        return res.status(200).json({
+            success:true,
+            message:"Student Marked Present Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Give Student Present",
+        })
+    }
+}
+
+exports.giveStudentAbsent = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const {newAbsentDate,studentId} = req.body;
+        if(!id || !newAbsentDate || !studentId){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where : {userId:id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+
+        const hostelBlockId = officialDetails?.hostelBlockId;
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block ID Not Found",
+            })
+        }
+
+        await Prisma.studentAttendence.update({where:{studentId,hostelBlockId}, data:{presentDate:{push:newAbsentDate}}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Student Marked Absent Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Give Student Absent",
+        })
+    }
+}
