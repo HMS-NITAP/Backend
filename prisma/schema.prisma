@@ -22,9 +22,44 @@ enum Gender {
 }
 
 enum RoomType {
-  Seater1
-  Seater2
-  Seater4
+  OneSeater
+  TwoSeater
+  FourSeater
+}
+
+enum OutingApplicationType {
+  Local
+  NonLocal
+}
+
+enum ApplicationStatus {
+  ACCEPTED
+  REJECTED
+  PENDING
+}
+
+enum MessSession {
+  Breakfast
+  Lunch
+  Snacks
+  Dinner
+}
+
+enum HostelComplaintCategory {
+  Plumbing
+  Furniture
+  CleanlinessAndHygiene
+  Network
+}
+
+enum ComplaintStatus {
+  UNRESOLVED
+  RESOLVED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
 }
 
 model User {
@@ -39,43 +74,52 @@ model User {
   worker                  Worker?
   security                Security?
   official                Official?
-  announcements           Announcement[]
 }
 
 model OTP {
   id            Int           @id @default(autoincrement())
   otp           String        @db.VarChar(255)
   email         String        @db.VarChar(255)
-  createdAt     DateTime      @default(now()) @db.Timestamptz
-  expiresAt     DateTime?     @db.Timestamptz
+  createdAt     DateTime      @default(now())  @db.Timestamp(6)
+  expiresAt     DateTime?     @db.Timestamp(6)
 }
 
-// add name obtained from OFFICIAL MAIL ID
 model InstituteStudent {
-  id                Int             @id @default(autoincrement())
-  regNo             String          @db.VarChar(255)
-  rollNo            String          @db.VarChar(255)
-  name              String          @db.VarChar(255)
-  year              String          @db.VarChar(255)  
-  branch            String          @db.VarChar(255)
-  gender            Gender
-  pwd               Boolean        
-  community         String          @db.VarChar(255)
-  aadharNumber      String          @db.VarChar(255)
-  dob               DateTime
-  bloodGroup        String          @db.VarChar(255)
-  fatherName        String          @db.VarChar(255)
-  motherName        String          @db.VarChar(255)
-  phone             String          @db.VarChar(255)
-  parentsPhone      String          @db.VarChar(255)
-  emergencyPhone    String          @db.VarChar(255)
-  address           String          @db.VarChar(1000)
-  photo             String          @db.VarChar(255)
-  isHosteller       Boolean
-  outingRating      String          @db.VarChar(255)
-  disciplineRating  String          @db.VarChar(255)
-  user              User            @relation(fields: [userId],references: [id])
-  userId            Int             @unique
+  id                Int                   @id @default(autoincrement())
+  regNo             String?               @db.VarChar(255)
+  rollNo            String?               @db.VarChar(255)
+  name              String?               @db.VarChar(255)
+  year              String?               @db.VarChar(255)  
+  branch            String?               @db.VarChar(255)
+  gender            Gender?
+  pwd               Boolean?        
+  community         String?               @db.VarChar(255)
+  aadharNumber      String?               @db.VarChar(255)
+  dob               DateTime?
+  bloodGroup        String?               @db.VarChar(255)
+  fatherName        String?               @db.VarChar(255)
+  motherName        String?               @db.VarChar(255)
+  phone             String?               @db.VarChar(255)
+  parentsPhone      String?               @db.VarChar(255)
+  emergencyPhone    String?               @db.VarChar(255)
+  address           String?               @db.VarChar(1000)
+  isHosteller       Boolean?
+  outingRating      Decimal?         
+  disciplineRating  Decimal?         
+  user              User                  @relation(fields: [userId],references: [id])
+  userId            Int                   @unique
+  outingApplication OutingApplication? 
+  hostelBlockId     Int
+  hostelBlock       HostelBlock           @relation(fields: [hostelBlockId], references: [id])
+  floorId           Int?
+  floors            Floor?              @relation(fields: [floorId] , references: [id])
+  roomId            Int?
+  room              Room?                 @relation(fields: [roomId], references: [id])
+  hostelComplaints  HostelComplaint[]
+  // medicalIssue      MedicalIssue[]
+  attendence        StudentAttendence?     
+  messHallId        Int                   @unique
+  messHall          MessHall              @relation(fields: [messHallId], references: [id])
 }
 
 model Worker {
@@ -98,50 +142,143 @@ model Security {
   phone         String        @db.VarChar(255)
   user          User          @relation(fields: [userId], references: [id])
   userId        Int           @unique
-  hostelBlock   HostelBlock?
+  hostelBlockId Int
+  hostelBlock   HostelBlock   @relation(fields: [hostelBlockId], references: [id])
 }
 
 model Official {
   id            Int           @id @default(autoincrement())
-  empId         String        @db.VarChar(255)
-  name          String        @db.VarChar(255)
-  designation   String        @db.VarChar(255)
-  gender        Gender       
-  phone         String        @db.VarChar(255)
+  empId         String?       @db.VarChar(255)
+  name          String?       @db.VarChar(255)
+  designation   String?       @db.VarChar(255)
+  gender        Gender?      
+  phone         String?       @db.VarChar(255)
   user          User          @relation(fields: [userId], references: [id])
   userId        Int           @unique
-  hostelBlock   HostelBlock?  
+  hostelBlockId Int
+  hostelBlock   HostelBlock?  @relation(fields: [hostelBlockId], references: [id])
+  announcement  Announcement[]
 }
+
+model HostelBlock {
+  id                  Int           @id @default(autoincrement())
+  name                String        @db.VarChar(255)
+  image               String        @db.VarChar(255)
+  roomType            RoomType
+  gender              Gender
+  floorCount          String        @db.VarChar(255)
+  capacity            String        @db.VarChar(255)
+  createdAt           DateTime      @default(now()) @db.Timestamp(6)
+  warderId            Int?         
+  warden              Official[]    
+  securityId          Int?           
+  security            Security[] 
+  floors              Floor[]
+  students            InstituteStudent[]
+  outingApplications  OutingApplication[]
+  hostelComplaints    HostelComplaint[]
+  studentAttendence   StudentAttendence[]
+} 
 
 model Announcement {
   id             Int            @id @default(autoincrement())
   title          String         @db.VarChar(255)
   textContent    String         @db.VarChar(255)
-  fileContent    String[]       @db.VarChar(255)
+  fileUrl        String         @db.VarChar(255)
   createdAt      DateTime       @default(now()) @db.Timestamp(6)
-  createdBy      User           @relation(fields: [createdById], references: [id])
   createdById    Int 
-}
-
-model HostelBlock {
-  id            Int           @id @default(autoincrement())
-  name          String        @db.VarChar(255)
-  blockId       String        @db.VarChar(255)
-  image         String        @db.VarChar(255)
-  roomType      RoomType
-  gender        Gender
-  floorCount    Int
-  capacity      Int
-  warderId      Int           @unique
-  warden        Official      @relation(fields: [warderId],references: [id])
-  securityId    Int           @unique
-  security      Security      @relation(fields: [securityId],references: [id])
+  createdBy      Official       @relation(fields: [createdById], references: [id])
 }
 
 model MessHall {
+  id                        Int                     @id @default(autoincrement())
+  name                      String                  @db.VarChar(255)
+  hallName                  String                  @db.VarChar(255)
+  gender                    Gender
+  capacity                  String                  @db.VarChar(255)
+  messRatingAndReviews      MessRatingAndReview[]
+  createdAt                 DateTime                @default(now()) @db.Timestamp(6)
+  students                  InstituteStudent[]
+}
+
+model MessRatingAndReview {
+  id              Int                   @id @default(autoincrement())
+  rating          Int
+  review          String                @db.VarChar(255)
+  createdAt       DateTime              @default(now()) @db.Timestamp(6)
+  messHallId      Int
+  messHall        MessHall              @relation(fields: [messHallId], references: [id]) 
+  session         MessSession
+}
+
+model OutingApplication {
+  id                        Int                                @default(autoincrement()) @id
+  type                      OutingApplicationType               
+  from                      DateTime                           
+  to                        DateTime                             
+  placeOfVisit              String                             @db.VarChar(255)
+  purpose                   String                             @db.VarChar(255)
+  status                    ApplicationStatus
+  createdAt                 DateTime                           @default(now()) @db.Timestamp(6)
+  instituteStudentId        Int                                @unique
+  instituteStudent          InstituteStudent                   @relation(fields: [instituteStudentId], references: [id])
+  hostelBlockId             Int
+  hostelBlock               HostelBlock                        @relation(fields: [hostelBlockId], references: [id])
+}
+
+model HostelComplaint {
+  id                        Int                             @id @default(autoincrement())
+  category                  HostelComplaintCategory
+  about                     String                          @db.VarChar(255)
+  hostelBlockId             Int                             @unique
+  hostelBlock               HostelBlock                     @relation(fields: [hostelBlockId], references: [id])
+  status                    ComplaintStatus
+  createdAt                 DateTime                        @default(now()) @db.Timestamp(6)
+  instituteStudentId        Int                             @unique
+  instituteStudent          InstituteStudent                @relation(fields: [instituteStudentId], references: [id])
+}
+
+// model MedicalIssue {
+//   id                            Int                         @id @default(autoincrement())
+//   title                         String                      @db.VarChar(30)
+//   description                   String                      @db.VarChar(1000)
+//   documentUrl                   String?                     @db.VarChar(255)
+//   createdAt                     DateTime                    @default(now())
+//   remark                        String                      @db.VarChar(255)
+//   status                        String                      @db.VarChar(255)
+//   instituteStudentId            Int                         @unique
+//   instituteStudent              InstituteStudent            @relation(fields: [instituteStudentId], references: [id])
+// }
+
+model Floor {
   id            Int           @id @default(autoincrement())
-  name          String        @db.VarChar(255)
-  hallName      String        @db.VarChar(255)
-  gender        Gender
-  capacity      Int
+  hostelBlockId Int
+  hostelBlock   HostelBlock   @relation(fields: [hostelBlockId], references: [id])
+  floorNumber   Int
+  rooms         Room[]
+  students                  InstituteStudent[]
+}
+
+model Room {
+  id         Int        @id @default(autoincrement())
+  floorId    Int
+  floor      Floor      @relation(fields: [floorId], references: [id])
+  roomNumber String     @db.VarChar(255)
+  capacity   Int
+  students   InstituteStudent[]
+}
+
+model StudentAttendence {
+  id                              Int                     @id @default(autoincrement())
+  studentId                       Int                     @unique
+  student                         InstituteStudent        @relation(fields: [studentId], references: [id])
+  hostelBlockId                   Int                     @unique
+  hostelBlock                     HostelBlock             @relation(fields: [hostelBlockId], references: [id])
+  presentDays                     Json                    @default("[]")
+  absentDays                      Json                    @default("[]")
+  date                            DateTime
+  status                          AttendanceStatus
+  createdAt                       DateTime                @default(now()) @db.Timestamp(6)
+
+  @@unique([studentId, date])
 }

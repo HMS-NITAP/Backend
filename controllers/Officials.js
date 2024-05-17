@@ -101,3 +101,65 @@ exports.deleteAnnouncement = async(req,res) => {
         })
     }
 }
+
+
+
+exports.updateStudentAttendance = async (req, res) => {
+    try {
+        const { id } = req.user;
+        const { date, studentId, status } = req.body;
+
+        if (!id || !date || !studentId || !status) {
+            return res.status(400).json({
+                success: false,
+                message: "Data is missing",
+            });
+        }
+
+        const officialDetails = await prisma.official.findFirst({ where: { userId: id } });
+        if (!officialDetails) {
+            return res.status(404).json({
+                success: false,
+                message: "Official account not found",
+            });
+        }
+
+        const hostelBlockId = officialDetails.hostelBlockId;
+        if (!hostelBlockId) {
+            return res.status(404).json({
+                success: false,
+                message: "Hostel Block ID not found",
+            });
+        }
+
+        const dateToUpdate = new Date(date);
+
+        let updateData;
+        if (status === 'PRESENT') {
+            updateData = { presentDays: { push: dateToUpdate } };
+        } else if (status === 'ABSENT') {
+            updateData = { absentDays: { push: dateToUpdate } };
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid status",
+            });
+        }
+
+        await prisma.studentAttendance.updateMany({
+            where: { studentId, hostelBlockId },
+            data: updateData,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: `Student marked ${status.toLowerCase()} successfully`,
+        });
+    } catch (error) {
+        console.error('Error updating student attendance:', error);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to update student attendance",
+        });
+    }
+};
