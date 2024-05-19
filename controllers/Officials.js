@@ -1,5 +1,4 @@
 const {uploadMedia} = require('../utilities/MediaUploader')
-const {AccountType} = require('../constant/AccountType')
 
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
@@ -7,18 +6,18 @@ const Prisma = new PrismaClient();
 exports.createAnnouncement = async(req,res) => {
     try{
         const {id} = req.user;
-        const  {title,textContent} = req.body;
+        const {title,textContent} = req.body;
         const {file} = req.files;
 
-        if(!id || !title || !textContent || !file){
+        if(!id || !title || !textContent){
             return res.status(404).json({
                 success:false,
                 message:"Data missing",
             })
         }
 
-        const officiaDetails = await Prisma.official.findFirst({where : {userId:id}});
-        if(!officiaDetails){
+        const officialDetails = await Prisma.official.findFirst({where : {userId:id}});
+        if(!officialDetails){
             return res.status(404).json({
                 success:false,
                 message:"Official Account Not Found",
@@ -33,7 +32,7 @@ exports.createAnnouncement = async(req,res) => {
             })
         }
 
-        await Prisma.announcement.create({data : {title,textContent,fileUrl:uploadedFile.secure_url,createdById:officiaDetails.id}});
+        await Prisma.announcement.create({data : {title,textContent,fileUrl:[uploadedFile.secure_url],createdById:officialDetails.id}});
 
         return res.status(200).json({
             success:true,
@@ -41,6 +40,7 @@ exports.createAnnouncement = async(req,res) => {
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Announcement Creation Failed",
@@ -236,7 +236,7 @@ exports.approvePendingOutingApplication = async(req,res) => {
             })
         }
 
-        const applicationDetails = await Prisma.outingApplication.findUnique({id:applicationId});
+        const applicationDetails = await Prisma.outingApplication.findUnique({where : {id:applicationId}});
         if(!applicationDetails){
             return res.status(404).json({
                 success:false,
@@ -251,13 +251,14 @@ exports.approvePendingOutingApplication = async(req,res) => {
             })
         }
 
-        await Prisma.outingApplication.update({where:{id:applicationDetails},data:{status:"ACCEPTED"}});
+        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"ACCEPTED"}});
         return res.status(200).json({
-            success:false,
+            success:true,
             message:"Approved Application Successfully",
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to Approve the Application",
@@ -277,7 +278,7 @@ exports.rejectPendingOutingApplication = async(req,res) => {
             })
         }
 
-        const applicationDetails = await Prisma.outingApplication.findUnique({id:applicationId});
+        const applicationDetails = await Prisma.outingApplication.findUnique({where :{id:applicationId}});
         if(!applicationDetails){
             return res.status(404).json({
                 success:false,
@@ -292,9 +293,9 @@ exports.rejectPendingOutingApplication = async(req,res) => {
             })
         }
 
-        await Prisma.outingApplication.update({where:{id:applicationDetails},data:{status:"REJECTED"}});
+        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"REJECTED"}});
         return res.status(200).json({
-            success:false,
+            success:true,
             message:"Rejected Application Successfully",
         })
 
@@ -415,13 +416,14 @@ exports.resolveHostelComplaint = async(req,res) => {
             })
         }
 
-        await Prisma.hostelBlock.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
+        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
         return res.status(200).json({
             success:true,
             message:"Resolved the Complaint Successfully",
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:true,
             message:"Unable to Resolve the Hostel Complaint",
@@ -456,7 +458,7 @@ exports.unresolveHostelComplaint = async(req,res) => {
             })
         }
 
-        await Prisma.hostelBlock.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
+        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"UNRESOLVED"}});
         return res.status(200).json({
             success:true,
             message:"Unresolved the Complaint Successfully",
@@ -470,34 +472,71 @@ exports.unresolveHostelComplaint = async(req,res) => {
     }
 }
 
-exports.giveStudentPresent = async(req,res) => {
+exports.getAllStudentsByHostelBlockForAttendence = async(req,res) => {
     try{
+        console.log("FDFD");
         const {id} = req.user;
-        const {newPresentDate,studentId} = req.body;
-        if(!id || !newPresentDate || !studentId){
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"ID is Missing",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where:{userId:id}});
+        if(!officialDetails || !(officialDetails?.hostelBlockId)){
+            return res.status(404).json({
+                success:false,
+                message:"Data Not Found",
+            })
+        }
+
+        const attendenceRecords = await Prisma.studentAttendence.findMany({
+            where: {
+              hostelBlockId: officialDetails?.hostelBlockId,
+            },
+            include: {
+              student: true,
+            },
+            orderBy: [
+              {
+                student: {
+                  floorNo: 'asc', 
+                },
+              },
+              {
+                student: {
+                  roomNo: 'asc', 
+                },
+              },
+            ],
+          });
+          
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Attendence Records Successfully",
+            data:attendenceRecords,
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Students",
+        })
+    }
+}
+
+exports.markStudentPresent = async(req,res) => {
+    try{
+        const {presentDate,attendenceRecordId} = req.body;
+        if(!presentDate || !attendenceRecordId){
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
             })
         }
 
-        const officialDetails = await Prisma.official.findFirst({where : {userId:id}});
-        if(!officialDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Official Account Not Found",
-            })
-        }
-
-        const hostelBlockId = officialDetails?.hostelBlockId;
-        if(!hostelBlockId){
-            return res.status(404).json({
-                success:false,
-                message:"Hostel Block ID Not Found",
-            })
-        }
-
-        await Prisma.studentAttendence.update({where:{studentId,hostelBlockId}, data:{presentDate:{push:newPresentDate}}});
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{presentDays:{push:presentDate}}});
         return res.status(200).json({
             success:true,
             message:"Student Marked Present Successfully",
@@ -511,35 +550,41 @@ exports.giveStudentPresent = async(req,res) => {
     }
 }
 
-exports.giveStudentAbsent = async(req,res) => {
+exports.unMarkStudentPresent = async(req,res) => {
     try{
-        const {id} = req.user;
-        const {newAbsentDate,studentId} = req.body;
-        if(!id || !newAbsentDate || !studentId){
+        const {presentDate,attendenceRecordId} = req.body;
+        if(!presentDate || !attendenceRecordId){
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
             })
         }
 
-        const officialDetails = await Prisma.official.findFirst({where : {userId:id}});
-        if(!officialDetails){
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{presentDays:{pop:presentDate}}});
+        return res.status(200).json({
+            success:true,
+            message:"Student Unmarked Present Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Unmark Student Present",
+        })
+    }
+}
+
+exports.markStudentAbsent = async(req,res) => {
+    try{
+        const {absentDate,attendenceRecordId} = req.body;
+        if(!absentDate || !attendenceRecordId){
             return res.status(404).json({
                 success:false,
-                message:"Official Account Not Found",
+                message:"Data is Missing",
             })
         }
 
-        const hostelBlockId = officialDetails?.hostelBlockId;
-        if(!hostelBlockId){
-            return res.status(404).json({
-                success:false,
-                message:"Hostel Block ID Not Found",
-            })
-        }
-
-        await Prisma.studentAttendence.update({where:{studentId,hostelBlockId}, data:{presentDate:{push:newAbsentDate}}});
-
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{absentDays:{push:absentDate}}});
         return res.status(200).json({
             success:true,
             message:"Student Marked Absent Successfully",
@@ -549,6 +594,30 @@ exports.giveStudentAbsent = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to Give Student Absent",
+        })
+    }
+}
+
+exports.unMarkStudentAbsent = async(req,res) => {
+    try{
+        const {absentDate,attendenceRecordId} = req.body;
+        if(!absentDate || !attendenceRecordId){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{absentDays:{pop:absentDate}}});
+        return res.status(200).json({
+            success:true,
+            message:"Student Unmarked Absent Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Unmark Student Absent",
         })
     }
 }

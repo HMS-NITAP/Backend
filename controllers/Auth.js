@@ -69,10 +69,10 @@ exports.sendOTP = async (req,res) => {
     }
 }
 
+// User and instituteStudent/Official Tables both should be created at once, make it atomic
 // Handle expire date of OTP --> delete them after 5 mins time
 exports.signup = async(req,res) => {
     try{
-        console.log("Here");
         const {email,password,confirmPassword,accountType,otp} = req.body;
 
         if(!email || !password || !confirmPassword || !accountType || !otp){
@@ -115,9 +115,10 @@ exports.signup = async(req,res) => {
         const details = await Prisma.user.create({data:{email,password:hashedPassword,accountType}});
         console.log("Details : ",details);
         if(accountType === "STUDENT"){
-            await Prisma.instituteStudent.create({data : {regNo:null,rollNo:null,name:null,year:null,branch:null,gender:null,pwd:null,community:null,aadharNumber:null,dob:null,bloodGroup:null,fatherName:null,motherName:null,phone:null,parentsPhone:null,emergencyPhone:null,address:null,isHosteller:null,outingRating:5.0,disciplineRating:5.0,user: {connect: { id: details.id }}}});
+            const studentDetails = await Prisma.instituteStudent.create({data : {regNo:null,rollNo:null,name:null,year:null,branch:null,gender:null,pwd:null,community:null,aadharNumber:null,dob:null,bloodGroup:null,fatherName:null,motherName:null,phone:null,parentsPhone:null,emergencyPhone:null,address:null,isHosteller:null,outingRating:5.0,disciplineRating:5.0,userId:details?.id, hostelBlockId:1, messHallId:1, cotNo:"1",floorNo:"1",roomNo:"104"}});
+            await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id, hostelBlockId:1}});
         }else if(accountType === "OFFICIAL"){
-            await Prisma.official.create({data : {empId:null,name:null,designation:null,gender:null,phone:null,user: {connect: { id: details.id }}}});
+            await Prisma.official.create({data : {empId:null,name:null,designation:null,gender:null,phone:null,userId: details?.id, hostelBlockId:1}});
         }
         return res.status(200).json({
             success:true,

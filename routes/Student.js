@@ -5,11 +5,9 @@ const {authMiddlewares} = require("../middlewares");
 const {studentController} = require('../controllers');
 
 // OUTING APPILICATION APIs
-router.post('/CreateOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
+router.post('/createOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
 router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
-router.get('/getStudentPendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentPendingOutingApplication);
-router.get('/getStudentAcceptedOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAcceptedOutingApplication);
-router.get('/getStudentRejectedOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentRejectedOutingApplication);
+router.get('/getStudentAllOutingApplications',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAllOutingApplications);
 
 // HOSTEL COMPLAINTS APIs
 router.post('/createHostelComplaint',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createHostelComplaint);
@@ -19,5 +17,14 @@ router.get('/showAllStudentComplaints',authMiddlewares.auth,authMiddlewares.isSt
 // MESS FEEDBACK APIs
 router.post('/createMessFeedBack',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createMessFeedBack);
 router.delete('/deleteMessFeedBack',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deleteMessFeedBack);
+
+// ATTENDENCE APIs
+router.get('/getStudentAttendance',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAttendance);
+
+// DASHBOARD DATA APIs
+router.get('/getStudentDashboardData',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentDashboardData);
+
+// PROFILE APIs
+router.put('/editProfile',authMiddlewares.auth,authMiddlewares.isStudent,studentController.editProfile);
 
 module.exports = router;

@@ -179,15 +179,15 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
 
 exports.createMessHall = async(req,res) => {
     try{
-        const{name, hallName, gender, capacity} = req.body;
-        if(!name || !hallName || !gender || !capacity){
+        const{hallName, gender, capacity} = req.body;
+        if(!hallName || !gender || !capacity){
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
             })
         }
 
-        await Prisma.messHall.create({data : {name, hallName, gender, capacity}});
+        await Prisma.messHall.create({data : { hallName, gender, capacity}});
         return res.status(200).json({
             success:true,
             message:"Mess Hall Created Successfully",

@@ -7,7 +7,7 @@ exports.getAllAnnouncements = async(_,res) => {
 
         return res.status(200).json({
             success:true,
-            announcements : announcements,
+            data : announcements,
             message : "Fetched All Announcements Successfully",
         })
     }catch(e){

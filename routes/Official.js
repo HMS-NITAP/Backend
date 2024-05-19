@@ -21,4 +21,11 @@ router.get('/getAllResolvedComplaintsByHostelBlock',authMiddlewares.auth,authMid
 router.put('/resolveHostelComplaint',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.resolveHostelComplaint);
 router.put('/unresolveHostelComplaint',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unresolveHostelComplaint);
 
+// ATTEDENCE APIs
+router.get('/getAllStudentsByHostelBlockForAttendence',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getAllStudentsByHostelBlockForAttendence);
+router.put('/markStudentPresent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.markStudentPresent);
+router.put('/markStudentAbsent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.markStudentAbsent);
+router.put('/unMarkStudentPresent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unMarkStudentPresent);
+router.put('/unMarkStudentAbsent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unMarkStudentAbsent);
+
 module.exports = router;

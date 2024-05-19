@@ -46,10 +46,17 @@ enum MessSession {
 }
 
 enum HostelComplaintCategory {
-  Plumbing
-  Furniture
-  CleanlinessAndHygiene
-  Network
+  General 
+  FoodIssues
+  Electrical
+  Civil
+  RoomCleaning
+  RestroomCleaning
+  NetworkIssue
+  Indisciplinary 
+  Discrimination
+  Harassment
+  DamagetoProperty
 }
 
 enum ComplaintStatus {
@@ -103,13 +110,16 @@ model InstituteStudent {
   disciplineRating  Decimal?         
   user              User                  @relation(fields: [userId],references: [id])
   userId            Int                   @unique
-  outingApplication OutingApplication? 
+  outingApplication OutingApplication[] 
   hostelBlockId     Int
   hostelBlock       HostelBlock           @relation(fields: [hostelBlockId], references: [id])
   hostelComplaints  HostelComplaint[]
   // medicalIssue      MedicalIssue[]
   attendence        StudentAttendence?     
-  messHallId        Int                   @unique
+  cotNo             String?               @db.VarChar(255)
+  floorNo           String?               @db.VarChar(255)
+  roomNo            String?               @db.VarChar(255)
+  messHallId        Int                   
   messHall          MessHall              @relation(fields: [messHallId], references: [id])
 }
 
@@ -174,7 +184,7 @@ model Announcement {
   id             Int            @id @default(autoincrement())
   title          String         @db.VarChar(255)
   textContent    String         @db.VarChar(255)
-  fileUrl        String         @db.VarChar(255)
+  fileUrl        String[]       @db.VarChar(255)
   createdAt      DateTime       @default(now()) @db.Timestamp(6)
   createdById    Int 
   createdBy      Official       @relation(fields: [createdById], references: [id])
@@ -182,7 +192,6 @@ model Announcement {
 
 model MessHall {
   id                        Int                     @id @default(autoincrement())
-  name                      String                  @db.VarChar(255)
   hallName                  String                  @db.VarChar(255)
   gender                    Gender
   capacity                  String                  @db.VarChar(255)
@@ -210,7 +219,7 @@ model OutingApplication {
   purpose                   String                             @db.VarChar(255)
   status                    ApplicationStatus
   createdAt                 DateTime                           @default(now()) @db.Timestamp(6)
-  instituteStudentId        Int                                @unique
+  instituteStudentId        Int                                
   instituteStudent          InstituteStudent                   @relation(fields: [instituteStudentId], references: [id])
   hostelBlockId             Int
   hostelBlock               HostelBlock                        @relation(fields: [hostelBlockId], references: [id])
@@ -220,13 +229,26 @@ model HostelComplaint {
   id                        Int                             @id @default(autoincrement())
   category                  HostelComplaintCategory
   about                     String                          @db.VarChar(255)
+  fileUrl                   String[]                        @db.VarChar(255)
   hostelBlockId             Int                             @unique
   hostelBlock               HostelBlock                     @relation(fields: [hostelBlockId], references: [id])
   status                    ComplaintStatus
   createdAt                 DateTime                        @default(now()) @db.Timestamp(6)
-  instituteStudentId        Int                             @unique
+  instituteStudentId        Int                             
   instituteStudent          InstituteStudent                @relation(fields: [instituteStudentId], references: [id])
 }
+
+model StudentAttendence {
+  id                              Int                     @id @default(autoincrement())
+  studentId                       Int                     @unique
+  student                         InstituteStudent        @relation(fields: [studentId], references: [id])
+  hostelBlockId                   Int                     
+  hostelBlock                     HostelBlock             @relation(fields: [hostelBlockId], references: [id])
+  presentDays                     String[]                
+  absentDays                      String[]                  
+  lastUpdated                     DateTime                @updatedAt
+}
+
 
 // model MedicalIssue {
 //   id                            Int                         @id @default(autoincrement())
@@ -239,13 +261,3 @@ model HostelComplaint {
 //   instituteStudentId            Int                         @unique
 //   instituteStudent              InstituteStudent            @relation(fields: [instituteStudentId], references: [id])
 // }
-
-model StudentAttendence {
-  id                              Int                     @id @default(autoincrement())
-  studentId                       Int                     @unique
-  student                         InstituteStudent        @relation(fields: [studentId], references: [id])
-  hostelBlockId                   Int                     @unique
-  hostelBlock                     HostelBlock             @relation(fields: [hostelBlockId], references: [id])
-  presentDays                     Json                    @default("[]")
-  absentDays                      Json                    @default("[]")
-}

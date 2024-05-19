@@ -1,10 +1,13 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
+const {uploadMedia} = require('../utilities/MediaUploader')
 
 exports.CreateOutingApplication = async (req,res) => {
     try{
         const {type,from,to,placeOfVisit,purpose} = req.body;
         const {id} = req.user;
+
+        console.log(req.body);
 
         if(!type || !from || !to || !placeOfVisit || !purpose || !id){
             return res.status(404).json({
@@ -21,7 +24,7 @@ exports.CreateOutingApplication = async (req,res) => {
             })
         }
 
-        const pendingStudentApplications = await Prisma.outingApplication.count({where : {instituteStudentId:studentDetails?.id, status:"PENDING"}});
+        const pendingStudentApplications = await Prisma.outingApplication.count({where : {instituteStudentId:studentDetails.id, status:"PENDING"}});
         if(pendingStudentApplications>0){
             return res.status(402).json({
                 success:false,
@@ -29,7 +32,7 @@ exports.CreateOutingApplication = async (req,res) => {
             })
         }
 
-        await Prisma.outingApplication.create({data : {type,from,to,placeOfVisit,purpose,instituteStudentId:studentDetails.id,status:"PENDING"}});
+        await Prisma.outingApplication.create({data : {type,from:new Date(from),to:new Date(to),placeOfVisit,purpose,instituteStudentId:studentDetails.id,hostelBlockId:studentDetails.hostelBlockId,status:"PENDING"}});
 
         return res.status(200).json({
             success:true,
@@ -87,7 +90,7 @@ exports.deletePendingOutingApplication = async(req,res) => {
     }
 }
 
-exports.getStudentPendingOutingApplication = async(req,res) => {
+exports.getStudentAllOutingApplications = async(req,res) => {
     try{
         const {id} = req.user;
         if(!id){
@@ -97,7 +100,7 @@ exports.getStudentPendingOutingApplication = async(req,res) => {
             })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({userId:id});
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId:id}});
         if(!studentDetails){
             return res.status(404).json({
                 success:false,
@@ -105,93 +108,32 @@ exports.getStudentPendingOutingApplication = async(req,res) => {
             })
         }
 
-        const pendingApplications = await Prisma.outingApplication.findMany({instituteStudentId:studentDetails?.id, status:"PENDING"});
+        const pendingApplications = await Prisma.outingApplication.findMany({where : {instituteStudentId:studentDetails?.id},orderBy:{createdAt:'desc'}});
         return res.status(200).json({
-            success:false,
-            message:"Successfully fetched all pending student Outing Applications",
+            success:true,
+            message:"Successfully fetched all student Outing Applications",
             data:pendingApplications,
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
-            message:"Unable to Fetch Student Pending Outing Applications",
-        })
-    }
-}
-
-exports.getStudentAcceptedOutingApplication = async(req,res) => {
-    try{
-        const {id} = req.user;
-        if(!id){
-            return res.status(404).json({
-                success:false,
-                message:"Id Missing",
-            })
-        }
-
-        const studentDetails = await Prisma.instituteStudent.findFirst({userId:id});
-        if(!studentDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Student Account Not Found",
-            })
-        }
-
-        const acceptApplications = await Prisma.outingApplication.findMany({instituteStudentId:studentDetails?.id, status:"ACCEPTED"});
-        return res.status(200).json({
-            success:false,
-            message:"Successfully fetched all accepted student Outing Applications",
-            data:acceptApplications,
-        })
-
-    }catch(e){
-        return res.status(400).json({
-            success:false,
-            message:"Unable to Fetch Student Accepted Outing Applications",
-        })
-    }
-}
-
-exports.getStudentRejectedOutingApplication = async(req,res) => {
-    try{
-        const {id} = req.user;
-        if(!id){
-            return res.status(404).json({
-                success:false,
-                message:"Id Missing",
-            })
-        }
-
-        const studentDetails = await Prisma.instituteStudent.findFirst({userId:id});
-        if(!studentDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Student Account Not Found",
-            })
-        }
-
-        const rejectedApplications = await Prisma.outingApplication.findMany({instituteStudentId:studentDetails?.id, status:"REJECTED"});
-        return res.status(200).json({
-            success:false,
-            message:"Successfully fetched all rejected student Outing Applications",
-            data:rejectedApplications,
-        })
-
-    }catch(e){
-        return res.status(400).json({
-            success:false,
-            message:"Unable to Fetch Student rejected Outing Applications",
+            message:"Unable to Fetch Students Outing Applications",
         })
     }
 }
 
 exports.createHostelComplaint = async (req,res) => {
     try{
+        console.log("GER");
         const {id} = req.user;
-        const {category, about, status} = req.body;
+        const {about} = req.body;
+        const {file} = req.files;
+        let {category} = req.body;
+        category = category.split(" ").join("");
 
-        if(!id || !category || !about || !status){
+        if(!id || !category || !about){
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
@@ -206,12 +148,21 @@ exports.createHostelComplaint = async (req,res) => {
             })
         }
 
-        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.instituteStudentId}});
+        const uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
+        if(!uploadedFile){
+            return res.status(403).json({
+                success:false,
+                message:"File Upload Failed",
+            })
+        }
+
+        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.id,fileUrl:[uploadedFile.secure_url]}});
         return res.status(200).json({
-            success:false,
+            success:true,
             message:"Hostel Complaint Created Successfully",
         })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Failed to create Complaint"
@@ -314,7 +265,7 @@ exports.createMessFeedBack = async(req,res) => {
             })
         }
 
-        const messHallId = await studentDetails?.messHallId;
+        const messHallId = studentDetails?.messHallId;
         if(!messHallId){
             return res.status(404).json({
                 success:false,
@@ -330,13 +281,14 @@ exports.createMessFeedBack = async(req,res) => {
             })
         }
 
-        await Prisma.messRatingAndReview.create({data : {rating,review,session,messHallId}});
+        await Prisma.messRatingAndReview.create({data : {rating:parseInt(rating),review,session,messHallId}});
         return res.status(200).json({
-            success:false,
+            success:true,
             message:"Created Mess Rating And Review Successfully",
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to Create Mess FeedBack",
@@ -370,13 +322,119 @@ exports.deleteMessFeedBack = async(req,res) => {
     }
 }
 
-exports.createMedicalIssue = async(req,res) => {
+exports.getStudentDashboardData = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"ID Not Found",
+            })
+        }
+
+        const instituteStudentDetails = await Prisma.instituteStudent.findFirst({where : {userId:id}});
+        const complaintsRegistered = await Prisma.hostelComplaint.count({where : {instituteStudentId:instituteStudentDetails?.id}});
+        const attendenceRecords = await Prisma.studentAttendence.findFirst({where : {studentId:instituteStudentDetails?.id}});
+        const hostelBlockData = await Prisma.hostelBlock.findUnique({where : {id : instituteStudentDetails?.hostelBlockId}});
+        const messHallData = await Prisma.messHall.findUnique({where : {id : instituteStudentDetails?.messHallId}});
+        // if(!instituteStudentDetails || complaintsRegistered===null || !attendenceRecords || !){
+        //     return res.status(404).json({
+        //         success:false,
+        //         message:"Data Not Found",
+        //     })
+        // }
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Dashboard Data Successfully",
+            data : {userData : req.user,instituteStudentData : instituteStudentDetails,numberOfComplaintsRegistered : complaintsRegistered,attendenceRecords : attendenceRecords, hostelBlockData : hostelBlockData, messHallData : messHallData},
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Student Dashboard Data Not Found",
+        })
+    }
+}
+
+exports.editProfile = async(req,res) => {
     try{
 
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"ID Not Found",
+            })
+        }
+
+        const {name,rollNo,regNo,year,branch,gender,community,aadharNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,isHosteller,cotNo,floorNo,roomNo} = req.body;
+        if(!name || !rollNo || !regNo || !year || !branch || !gender || !community || !aadharNumber || !dob || !bloodGroup || !fatherName || !motherName || !phone || !parentsPhone || !emergencyPhone || !address || !isHosteller || !cotNo || !floorNo || !roomNo){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+        console.log("Data : ",req.body);
+
+        let newDOB = new Date(req.body.dob);
+
+        await Prisma.instituteStudent.update({where : {userId:id}, data:{name,rollNo,regNo,year,branch,gender,community,aadharNumber,dob:newDOB,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,isHosteller:true,cotNo,floorNo,roomNo}});
+        return res.status(200).json({
+            success:true,
+            message:"Operation Successful",
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Operation Failed",
+        })
+    }
+}
+
+exports.getStudentAttendance = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId:id}});
+
+        const attendanceData = await Prisma.studentAttendence.findFirst({where : {studentId:studentDetails?.id}});
+        if(!attendanceData){
+            return res.status(404).json({
+                success:false,
+                message:"Attendance Record Not Found",
+            })
+        }
+
+        const formattedAttendance = [];
+
+        attendanceData.presentDays.forEach(date => {
+            formattedAttendance.push({ date, status: 'present' });
+        });
+        attendanceData.absentDays.forEach(date => {
+            formattedAttendance.push({ date, status: 'absent' });
+        });
+        formattedAttendance.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        return res.status(200).json({
+            success:true,
+            message:"Successfully Fetched Attendance Data",
+            data:formattedAttendance,
+        })
     }catch(e){
         return res.status(400).json({
             success:false,
-            message:"Unable to create Medical Issue",
+            message:"unable to fetch Student Attendance",
         })
     }
 }
