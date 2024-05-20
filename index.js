@@ -17,12 +17,11 @@ app.use(
         credentials:true,
     })
 )
-app.use(
-    fileUpload({
-        useTempFiles:true,
-        tempFileDir:"/temp"
-    })
-)
+
+app.use(fileUpload({
+    useTempFiles : true,
+    tempFileDir : '/tmp/'
+}));
 
 app.use("/api/v1",routes);
 
