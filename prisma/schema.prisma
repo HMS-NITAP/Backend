@@ -230,7 +230,7 @@ model HostelComplaint {
   category                  HostelComplaintCategory
   about                     String                          @db.VarChar(255)
   fileUrl                   String[]                        @db.VarChar(255)
-  hostelBlockId             Int                             @unique
+  hostelBlockId             Int                             
   hostelBlock               HostelBlock                     @relation(fields: [hostelBlockId], references: [id])
   status                    ComplaintStatus
   createdAt                 DateTime                        @default(now()) @db.Timestamp(6)
