@@ -5,6 +5,7 @@ const Prisma = new PrismaClient();
 
 exports.createAnnouncement = async(req,res) => {
     try{
+        console.log("GERE");
         const {id} = req.user;
         const {title,textContent} = req.body;
         const {file} = req.files;
@@ -474,7 +475,6 @@ exports.unresolveHostelComplaint = async(req,res) => {
 
 exports.getAllStudentsByHostelBlockForAttendence = async(req,res) => {
     try{
-        console.log("FDFD");
         const {id} = req.user;
         if(!id){
             return res.status(404).json({
