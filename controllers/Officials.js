@@ -125,7 +125,7 @@ exports.getPendingOutingApplicationsByWardenBlock = async(req,res) => {
             })
         }
 
-        const pendingApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"PENDING"}});
+        const pendingApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"PENDING"}, include:{instituteStudent:true}});
 
         return res.status(200).json({
             success:true,
@@ -167,7 +167,7 @@ exports.getAcceptedOutingApplicationsByWardenBlock = async(req,res) => {
             })
         }
 
-        const acceptedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"ACCEPTED"}});
+        const acceptedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"ACCEPTED"}, include:{instituteStudent:true}});
 
         return res.status(200).json({
             success:true,
@@ -209,7 +209,7 @@ exports.getRejectedOutingApplicationsByWardenBlock = async(req,res) => {
             })
         }
 
-        const rejectedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"REJECTED"}});
+        const rejectedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"REJECTED"}, include:{instituteStudent:true}});
 
         return res.status(200).json({
             success:true,
