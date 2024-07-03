@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { DateTime } = require('luxon'); // For date manipulation
 const Prisma = new PrismaClient();
 
 exports.getAllAnnouncements = async(_,res) => {
@@ -174,6 +175,133 @@ exports.getAllRatingAndReview = async (req,res) => {
         return res.status(500).json({
             success : false,
             message : "Something went wrong while fetching the rating and review",
+        })
+    }
+}
+
+exports.getRatingOfAllMessSessions = async (req,res) => {
+    try{
+        const currentDateUTC = DateTime.utc().toISO();
+
+        // convert it into IST
+        const currrentDateIST = DateTime.fromISO(currentDateUTC,{zone : 'Asia/Kolkata'});
+
+        const messHalls = Prisma.messHall.findMany({
+            include : {
+                messRatingAndReviews : {
+                    where : {
+                        createdAt : {
+                            gte : currrentDateIST.startOf("day").toJSDate(),
+                            lt : currrentDateIST.endOf("day").toJSDate(),
+                        },
+                    },
+                    include : {
+                        session : true,
+                    }
+                }
+            }
+        })
+
+        if(!messHalls){
+            return res.statu(404).json({
+                success : false,
+                message : "Mess Hall data not found"
+            })
+        }
+
+        const sessionRatings = {
+            [MessSession.Breakfast]: { totalRating: 0, ratingCount: 0 },
+            [MessSession.Lunch]: { totalRating: 0, ratingCount: 0 },
+            [MessSession.Snacks]: { totalRating: 0, ratingCount: 0 },
+            [MessSession.Dinner]: { totalRating: 0, ratingCount: 0 },
+        };
+
+        (await messHalls).forEach(messHall => {
+            messHall.messRatingAndReview.forEach(rating => {
+                const session = rating.session;
+                sessionRatings[session].totalRating += rating.rating;
+                sessionRatings[session].ratingCount++;
+            })
+        })
+
+        const avgRatingBySession = {};
+        Object.keys(sessionRatings).forEach(session => {
+            const {totalRating,ratingCount} = sessionRatings[session];
+            avgRatingBySession[session] = ratingCount > 0 ? totalRating / ratingCount : 0;
+        });
+
+        return res.status(200).json({
+            success : true,
+            message : "Successfully fetched the average rating of the mess sessions",
+            avgRatingBySession
+        });
+    }
+    catch(e){
+        console.log(e);
+        console.error(e);
+        return res.status(500).json({
+            success : false,
+            message : "Unable to fetch the average rating of the mess session",
+        })
+    }
+}
+
+exports.getMessRatingAndReview = async (req,res) => {
+    try{
+        // give date in UTC format
+        const {messSession , date} = req.body;
+
+        const requestedDate = DateTime.fromISO(date,{zone : "utc"});
+        if(!requestedDate.isValid){
+            return res.status(400).json({
+                success : false,
+                message : "Invalid date format",
+            })
+        }
+
+        const requestedDateIST = requestedDate.setZone("Asia/Kolkata");
+
+        const sessionRating  = await Prisma.messRatingAndReview.findMany({
+            where : {
+                session : messSession,
+                createdAt : {
+                    gte : requestedDateIST.startOf("day").toJSDate(),
+                    lt : requestedDateIST.endOf("day").toJSDate(),
+                }
+            },
+            include : {
+                messHall : {
+                    include : {
+                        students : {
+                            select : {
+                                id : true,
+                                name : true,
+                                regNo : true,
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        // covert created timestap form UTC to IST for rating
+        await sessionRating.forEach(rating => {
+            rating.createdAt = DateTime.fromJSDate(rating.createdAt , {zone : "utc"}).setZone("Asia/Kolkata").toISO();
+        });
+
+        return res.status(200).json({
+            success : true,
+            message : "Successfully fetched the rating and reviews of the mess session and the student details",
+            sessionRating,
+        });
+
+    }
+    catch(e){
+        console.log(e);
+        console.error(e);
+        return res.status(500).json({
+            success : false,
+            message : "Unable to fetch the mess session rating and reviews."
         })
     }
 }
