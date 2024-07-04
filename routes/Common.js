@@ -5,6 +5,9 @@ const {commonController} = require('../controllers');
 
 router.get("/getAllAnnouncements",commonController.getAllAnnouncements);
 router.get("/fetchAllHostelData",commonController.fetchAllHostelData);
-router.get("/fetchMessDataAndFeedback",commonController.fetchMessAndFeedback);
+
+router.get("/getRatingOfAllMessSessions",commonController.getRatingOfAllMessSessions);
+router.get("/getRatingAndReviewOfCurrentDate",commonController.getMessRatingAndReviewOfCurrentDate);
+router.get("/getMessRatingAndReview",commonController.getMessRatingAndReview);
 
 module.exports = router;

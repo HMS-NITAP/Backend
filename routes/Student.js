@@ -8,6 +8,9 @@ const {studentController} = require('../controllers');
 router.post('/createOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
 router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
 router.get('/getStudentAllOutingApplications',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAllOutingApplications);
+router.put('/updateOutingApplicationStatus',authMiddlewares.auth,authMiddlewares.isOfficial,studentController.updateOutingApplicationStatus);
+router.post('/markOutingInProgress',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markOutingInProgress);
+router.post('/markReturnOuting',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markReturnOuting);
 
 // HOSTEL COMPLAINTS APIs
 router.post('/createHostelComplaint',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createHostelComplaint);
