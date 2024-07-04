@@ -126,10 +126,9 @@ exports.getStudentAllOutingApplications = async(req,res) => {
 
 exports.createHostelComplaint = async (req,res) => {
     try{
-        console.log("GER");
         const {id} = req.user;
         const {about} = req.body;
-        const {file} = req.files;
+        const { file = null } = req.files || {};
         let {category} = req.body;
         category = category.split(" ").join("");
 
@@ -148,15 +147,18 @@ exports.createHostelComplaint = async (req,res) => {
             })
         }
 
-        const uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
-        if(!uploadedFile){
-            return res.status(403).json({
-                success:false,
-                message:"File Upload Failed",
-            })
+        let uploadedFile = null;
+        if(file){
+            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
+            if(!uploadedFile){
+                return res.status(403).json({
+                    success:false,
+                    message:"File Upload Failed",
+                })
+            }
         }
 
-        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.id,fileUrl:[uploadedFile.secure_url]}});
+        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.id,fileUrl: uploadedFile ? [uploadedFile.secure_url] : []}});
         return res.status(200).json({
             success:true,
             message:"Hostel Complaint Created Successfully",

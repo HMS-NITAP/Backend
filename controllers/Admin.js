@@ -1,13 +1,14 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 const {uploadMedia} = require('../utilities/MediaUploader');
+const bcrypt = require("bcrypt")
 
 exports.createHostelBlock = async(req,res) => {
     try{
-        const {hostelName,roomType,gender,floorCount,capacity} = req.body;
+        const {name,roomType,gender,floorCount,capacity,year} = req.body;
         const {image} = req.files;
-        console.log(hostelName,roomType,gender,floorCount,capacity,image);
-        if(!hostelName || !image || !roomType || !gender || !floorCount || !capacity){
+        console.log(name,roomType,gender,floorCount,capacity,image,year);
+        if(!name || !image || !roomType || !gender || !floorCount || !capacity || !year){
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
@@ -22,7 +23,7 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        await Prisma.hostelBlock.create({data : {name:hostelName,image:uploadedFile.secure_url,gender,roomType,floorCount,capacity}});
+        await Prisma.hostelBlock.create({data : {name,image:uploadedFile.secure_url,gender,roomType,floorCount,capacity,year}});
         return res.status(200).json({
             success:true,
             message:"Hostel Block Created Successfully",
@@ -38,7 +39,7 @@ exports.createHostelBlock = async(req,res) => {
 
 exports.deleteHostelBlock = async(req,res) => {
     try{
-        const hostelBlockId = req.body;
+        const {hostelBlockId} = req.body;
 
         if(!hostelBlockId){
             return res.status(404).json({
@@ -47,13 +48,14 @@ exports.deleteHostelBlock = async(req,res) => {
             })
         }
 
-        await Prisma.hostelBlock.delete({where : {id}});
+        await Prisma.hostelBlock.delete({where : {id:hostelBlockId}});
 
         return res.status(200).json({
             success:true,
             message:"Deletion of HostelBlock Successful",
         })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Deletion of Hostel Block Failed",
@@ -63,7 +65,10 @@ exports.deleteHostelBlock = async(req,res) => {
 
 exports.addWardenToHostelBlock = async(req,res) => {
     try{
-        const {newWardenId,hostelBlockId} = req.body;
+        let {newWardenId,hostelBlockId} = req.body;
+        newWardenId = parseInt(newWardenId);
+        hostelBlockId = parseInt(hostelBlockId);
+
         if(!newWardenId || !hostelBlockId){
             return res.status(404).json({
                 success:false,
@@ -87,24 +92,7 @@ exports.addWardenToHostelBlock = async(req,res) => {
             })
         }
 
-        const existingWardenIds = (hostelBlockDetails.wardenId).map((warden) => warden.id);
-        if(existingWardenIds.includes(newWardenId)){
-            return res.status(400).json({
-                success:false,
-                message:"This Warden has been already added to this Hostel Block",
-            })
-        }
-
-        existingWardenIds.push(newWardenId);
-
-        await Prisma.hostelBlock.update({
-            where: { id: hostelBlockId },
-            data: {
-              warden: {
-                connect: existingWardenIds.map((id) => ({ id })),
-              },
-            },
-          });
+        await Prisma.official.update({where:{id:newWardenId}, data:{hostelBlockId:hostelBlockId}})
 
         return res.status(200).json({
             success:true,
@@ -112,6 +100,7 @@ exports.addWardenToHostelBlock = async(req,res) => {
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Error adding Warden to Hostel Block",
@@ -121,7 +110,10 @@ exports.addWardenToHostelBlock = async(req,res) => {
 
 exports.removeWardenFromHostelBlock = async(req,res) => {
     try{
-        const {removeWardenId,hostelBlockId} = req.body;
+        let {removeWardenId,hostelBlockId} = req.body;
+        removeWardenId = parseInt(removeWardenId);
+        hostelBlockId = parseInt(hostelBlockId);
+        
         if(!removeWardenId || !hostelBlockId){
             return res.status(404).json({
                 success:false,
@@ -145,24 +137,7 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
             })
         }
 
-        const existingWardenIds = hostelBlockDetails.wardenId.map((warden) => warden.id);
-        if(!existingWardenIds.includes(newWardenId)){
-            return res.status(404).json({
-                success:false,
-                message:"This Warden is not present in this Hostel Block",
-            })
-        }
-
-        existingWardenIds.pop(removeWardenId);
-
-        await Prisma.hostelBlock.update({
-            where: { id: hostelBlockId },
-            data: {
-              warden: {
-                connect: existingWardenIds.map((id) => ({ id })),
-              },
-            },
-          });
+        await Prisma.official.update({where:{id:removeWardenId},data:{hostelBlockId:null}});
 
         return res.status(200).json({
             success:true,
@@ -170,6 +145,7 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Error Removing Warden From Hostel Block",
@@ -220,6 +196,115 @@ exports.deleteMessHall = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to delete Mess Hall",
+        })
+    }
+}
+
+exports.createOfficialAccount = async(req,res) => {
+    try{
+        const {email,password,name,designation,gender,phone} = req.body;
+
+        if(!email || !password || !name || !designation || !gender || !phone){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
+        const ifUserAlreadyExists = await Prisma.user.findFirst({where : {email}});
+        if(ifUserAlreadyExists){
+            return res.status(400).json({
+                success:false,
+                message:"Email Already Registered",
+            })
+        }
+
+        const hashedPassword = await bcrypt.hash(password,10);
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"OFFICIAL"}});
+        if(!user){
+            return res.status(400).json({
+                success:false,
+                message:"Unable to create Account",
+            })
+        }
+
+        await Prisma.official.create({data : {name,designation,gender,phone,userId:user?.id}});
+        
+        return res.status(200).json({
+            success:true,
+            message:"Account created Successfully",
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Failed to Create Account",
+        })
+    }
+}
+
+exports.deleteOfficialAccount = async(req,res) => {
+    try{
+        const {officialId} = req.body;
+        if(!officialId){
+            return res.status(404).json({
+                success:false,
+                message:"Data missing",
+            })
+        }
+
+        const officialAccount = await Prisma.official.findUnique({where : {id : officialId}});
+        if(!officialAccount){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+        const userId = officialAccount?.userId;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"User Not Found",
+            })
+        }
+        await Prisma.official.delete({where : {id : officialAccount?.id}});
+
+        const userAccount = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userAccount){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+        await Prisma.user.delete({where : {id : userId}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Account Deleted Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to delete account",
+        })
+    }
+}
+
+exports.fetchOfficialAccounts = async(_,res) => {
+    try{
+        const accounts = await Prisma.official.findMany({
+            include : {user : true,hostelBlock:true}
+        });
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Accounts Successfully",
+            data : accounts,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable To Fetch Accounts",
         })
     }
 }

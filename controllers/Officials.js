@@ -5,10 +5,9 @@ const Prisma = new PrismaClient();
 
 exports.createAnnouncement = async(req,res) => {
     try{
-        console.log("GERE");
         const {id} = req.user;
         const {title,textContent} = req.body;
-        const {file} = req.files;
+        const { file = null } = req.files || {};
 
         if(!id || !title || !textContent){
             return res.status(404).json({
@@ -25,15 +24,18 @@ exports.createAnnouncement = async(req,res) => {
             })
         }
 
-        const uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
-        if(!uploadedFile){
-            return res.status(403).json({
-                success:false,
-                message:"File Upload Failed",
-            })
+        let uploadedFile = null;
+        if(file){
+            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
+            if(!uploadedFile){
+                return res.status(403).json({
+                    success:false,
+                    message:"File Upload Failed",
+                })
+            }
         }
 
-        await Prisma.announcement.create({data : {title,textContent,fileUrl:[uploadedFile.secure_url],createdById:officialDetails.id}});
+        await Prisma.announcement.create({data : {title,textContent,fileUrl: uploadedFile ? [uploadedFile.secure_url] : [],createdById:officialDetails.id}});
 
         return res.status(200).json({
             success:true,
@@ -334,7 +336,7 @@ exports.getAllUnresolvedComplaintsByHostelBlock = async(req,res) => {
             })
         }
 
-        const unresolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"UNRESOLVED"}, orderBy:{createdAt:'asc'}});
+        const unresolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"UNRESOLVED"},include:{instituteStudent:true}, orderBy:{createdAt:'asc'}});
         return res.status(200).json({
             success:true,
             message:"Successfully Fetched All UnResolved Complaints",
@@ -375,7 +377,7 @@ exports.getAllResolvedComplaintsByHostelBlock = async(req,res) => {
             })
         }
 
-        const resolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"RESOLVED"}, orderBy:{createdAt:'asc'}});
+        const resolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"RESOLVED"},include:{instituteStudent:true},orderBy:{createdAt:'asc'}});
         return res.status(200).json({
             success:true,
             message:"Successfully Fetched All Resolved Complaints",

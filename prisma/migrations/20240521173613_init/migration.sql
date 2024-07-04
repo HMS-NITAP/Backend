@@ -206,8 +206,8 @@ CREATE TABLE "StudentAttendence" (
     "id" SERIAL NOT NULL,
     "studentId" INTEGER NOT NULL,
     "hostelBlockId" INTEGER NOT NULL,
-    "presentDays" JSONB NOT NULL DEFAULT '[]',
-    "absentDays" JSONB NOT NULL DEFAULT '[]',
+    "presentDays" TEXT[],
+    "absentDays" TEXT[],
     "lastUpdated" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "StudentAttendence_pkey" PRIMARY KEY ("id")
@@ -220,9 +220,6 @@ CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 CREATE UNIQUE INDEX "InstituteStudent_userId_key" ON "InstituteStudent"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "InstituteStudent_messHallId_key" ON "InstituteStudent"("messHallId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Worker_userId_key" ON "Worker"("userId");
 
 -- CreateIndex
@@ -232,13 +229,7 @@ CREATE UNIQUE INDEX "Security_userId_key" ON "Security"("userId");
 CREATE UNIQUE INDEX "Official_userId_key" ON "Official"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "HostelComplaint_hostelBlockId_key" ON "HostelComplaint"("hostelBlockId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "StudentAttendence_studentId_key" ON "StudentAttendence"("studentId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "StudentAttendence_hostelBlockId_key" ON "StudentAttendence"("hostelBlockId");
 
 -- AddForeignKey
 ALTER TABLE "InstituteStudent" ADD CONSTRAINT "InstituteStudent_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
