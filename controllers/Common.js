@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const { DateTime } = require('luxon'); // For date manipulation
 const Prisma = new PrismaClient();
 
 exports.getAllAnnouncements = async(_,res) => {
@@ -181,18 +180,22 @@ exports.getAllRatingAndReview = async (req,res) => {
 
 exports.getRatingOfAllMessSessions = async (req,res) => {
     try{
-        const currentDateUTC = DateTime.utc().toISO();
+
+        const currentDateUTC = new Date.now();
 
         // convert it into IST
-        const currrentDateIST = DateTime.fromISO(currentDateUTC,{zone : 'Asia/Kolkata'});
+        const currentDateIST = new Date(currentDateUTC.getTime() + (330*60*1000)); //UTC + 5:30
+
+        const startOfDayIST = new Date(currentDateIST.setHours(0, 0, 0, 0));
+        const endOfDayIST = new Date(currentDateIST.setHours(23, 59, 59, 999));
 
         const messHalls = Prisma.messHall.findMany({
             include : {
                 messRatingAndReviews : {
                     where : {
                         createdAt : {
-                            gte : currrentDateIST.startOf("day").toJSDate(),
-                            lt : currrentDateIST.endOf("day").toJSDate(),
+                            gte : startOfDayIST,
+                            lt : endOfDayIST
                         },
                     },
                     include : {
@@ -246,12 +249,27 @@ exports.getRatingOfAllMessSessions = async (req,res) => {
     }
 }
 
-exports.getMessRatingAndReview = async (req,res) => {
+exports.getMessRatingAndReviewOfCurrentDate = async (req,res) => {
     try{
         // give date in UTC format
-        const {messSession , date} = req.body;
+        const {messSession} = req.body;
 
-        const requestedDate = DateTime.fromISO(date,{zone : "utc"});
+        if(!messSession){
+            return res.status(400).json({
+                success : false,
+                message : "Required data is missing."
+            })
+        }
+
+       const currentDateUTC = new Date.now();
+
+       // change to IST
+       const currentDateIST = new Date(currentDateUTC.getTime() + (330*60*1000));
+
+
+       const startOfDayIST = new Date(currentDateIST.setHours(0, 0, 0, 0));
+       const endOfDayIST = new Date(currentDateIST.setHours(23, 59, 59, 999));
+
         if(!requestedDate.isValid){
             return res.status(400).json({
                 success : false,
@@ -259,14 +277,12 @@ exports.getMessRatingAndReview = async (req,res) => {
             })
         }
 
-        const requestedDateIST = requestedDate.setZone("Asia/Kolkata");
-
         const sessionRating  = await Prisma.messRatingAndReview.findMany({
             where : {
                 session : messSession,
                 createdAt : {
-                    gte : requestedDateIST.startOf("day").toJSDate(),
-                    lt : requestedDateIST.endOf("day").toJSDate(),
+                    gte : startOfDayIST,
+                    lt : endOfDayIST
                 }
             },
             include : {
@@ -285,8 +301,10 @@ exports.getMessRatingAndReview = async (req,res) => {
         })
 
         // covert created timestap form UTC to IST for rating
-        await sessionRating.forEach(rating => {
-            rating.createdAt = DateTime.fromJSDate(rating.createdAt , {zone : "utc"}).setZone("Asia/Kolkata").toISO();
+        sessionRating.forEach(rating => {
+            const createdAtUTC = new Date(rating.createdAt);
+            const createdAtIST = new Date(createdAtUTC.getTime() + (330*60*1000));
+            rating.createdAt = createdAtIST.toISOString();
         });
 
         return res.status(200).json({
@@ -303,5 +321,78 @@ exports.getMessRatingAndReview = async (req,res) => {
             success : false,
             message : "Unable to fetch the mess session rating and reviews."
         })
+    }
+}
+
+exports.getMessRatingAndReview = async (req,res) => {
+    try{
+        const {messSession,date} = req.body;
+
+        if(!messSession || !date){
+            return res.status(404).json({
+                success : false,
+                message : "Required Data is missing."
+            })
+        }
+
+        const requestedDateUTC = new Date(date);
+
+        // Check if the date is valid
+        if (isNaN(requestedDateUTC.getTime())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid date format',
+            });
+        }
+
+        // covert it into IST
+        const requestedDateIST = new Date(requestedDateUTC.getTime() + (330*60*1000));
+
+        const startOfDayIST = new Date(requestedDateIST.setHours(0, 0, 0, 0));
+        const endOfDayIST = new Date(requestedDateIST.setHours(23, 59, 59, 999));
+
+        const sessionRating  = await Prisma.messRatingAndReview.findMany({
+            where : {
+                session : messSession,
+                createdAt : {
+                    gte : startOfDayIST,
+                    lt : endOfDayIST
+                }
+            },
+            include : {
+                messHall : {
+                    include : {
+                        students : {
+                            select : {
+                                id : true,
+                                name : true,
+                                regNo : true,
+                            }
+                        }
+                    }
+                }
+            }
+        })
+
+        sessionRating.forEach(rating => {
+            const createdAtUTC = new Date(rating.createdAt);
+            const createdAtIST = new Date(createdAtUTC.getTime() + (330*60*1000));
+            rating.createdAt = createdAtIST.toISOString();
+        });
+
+        return res.status(200).json({
+            success : true,
+            message : "Successfully fetched the rating and reviews of the mess session and the student details",
+            sessionRating,
+        });
+    }
+    catch(e){
+        console.log(e);
+        console.error(e);
+        return res.status(500).json({
+            success : false,
+            message : "Unable to fetch rating and review of the mess session."
+        })
+
     }
 }
