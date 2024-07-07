@@ -119,15 +119,15 @@ exports.getPendingOutingApplicationsByWardenBlock = async(req,res) => {
             })
         }
 
-        const blockIdOfWarder = officialDetails?.hostelBlockId;
-        if(!blockIdOfWarder){
+        const blockIdOfWarden = officialDetails?.hostelBlockId;
+        if(!blockIdOfWarden){
             return res.status(404).json({
                 success:false,
                 message:"Warden Block Details Not Found",
             })
         }
 
-        const pendingApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"PENDING"}, include:{instituteStudent:true}});
+        const pendingApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarden,status:"PENDING"}, include:{instituteStudent:true}});
 
         return res.status(200).json({
             success:true,
@@ -143,7 +143,7 @@ exports.getPendingOutingApplicationsByWardenBlock = async(req,res) => {
     }
 }
 
-exports.getAcceptedOutingApplicationsByWardenBlock = async(req,res) => {
+exports.getCompletedOutingApplicationsByWardenBlock = async(req,res) => {
     try{
         const {id} = req.user;
         if(!id){
@@ -169,12 +169,12 @@ exports.getAcceptedOutingApplicationsByWardenBlock = async(req,res) => {
             })
         }
 
-        const acceptedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"ACCEPTED"}, include:{instituteStudent:true}});
+        const completedApplications = await Prisma.outingApplication.findMany({where:{hostelBlockId:blockIdOfWarder,status:"COMPLETED"}, include:{instituteStudent:true}});
 
         return res.status(200).json({
             success:true,
-            message:"All Accepted Applications of Warden's Block Fetched Successfully",
-            data:acceptedApplications,
+            message:"All Completed Applications of Warden's Block Fetched Successfully",
+            data:completedApplications,
         })
 
     }catch(e){
@@ -227,10 +227,54 @@ exports.getRejectedOutingApplicationsByWardenBlock = async(req,res) => {
     }
 }
 
+exports.getInProgressOutingApplicationsByWardenBlock = async (req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success : false,
+                message : "Data Missing",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findUnique({where : {userId : id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success : false,
+                message : "Official Account Not Found"
+            })
+        }
+
+        const blockIdOfWarden = officialDetails?.hostelBlockId;
+        if(!blockIdOfWarden){
+            return res.status(404).json({
+                success : false,
+                message : "Warden Block Details Not Found"
+            })
+        }
+
+        const inProgressOutingApplications = await Prisma.outingApplication.findMany({where : {hostelBlockId : blockIdOfWarden,status : "INPROGRESS"},include : {instituteStudent : true}});
+
+        return res.status(200).json({
+            success : true,
+            message : "All In-Progress Outing Application Of Warden's Block Fetched Successfully",
+            data : inProgressOutingApplications,
+        })
+
+    }
+    catch(e){
+        console.log(e);
+        return res.status(500).json({
+            success : false,
+            message : "Unable to Fetch Applications Failed"
+        })
+    }
+}
+
 exports.approvePendingOutingApplication = async(req,res) => {
     try{
         const {id} = req.user;
-        const {applicationId} = req.body;
+        const {applicationId , remarks} = req.body;
 
         if(!id || !applicationId){
             return res.status(404).json({
@@ -254,7 +298,7 @@ exports.approvePendingOutingApplication = async(req,res) => {
             })
         }
 
-        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"ACCEPTED"}});
+        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"INPROGRESS",remarks :remarks || null}});
         return res.status(200).json({
             success:true,
             message:"Approved Application Successfully",
@@ -272,7 +316,7 @@ exports.approvePendingOutingApplication = async(req,res) => {
 exports.rejectPendingOutingApplication = async(req,res) => {
     try{
         const {id} = req.user;
-        const {applicationId} = req.body;
+        const {applicationId , remarks} = req.body;
 
         if(!id || !applicationId){
             return res.status(404).json({
@@ -296,7 +340,7 @@ exports.rejectPendingOutingApplication = async(req,res) => {
             })
         }
 
-        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"REJECTED"}});
+        await Prisma.outingApplication.update({where:{id:applicationId},data:{status:"REJECTED",remarks : remarks}});
         return res.status(200).json({
             success:true,
             message:"Rejected Application Successfully",
@@ -307,6 +351,117 @@ exports.rejectPendingOutingApplication = async(req,res) => {
             success:false,
             message:"Unable to Reject the Application",
         })
+    }
+}
+
+exports.markCompletedOutingWithoutDelay = async (req,res) => {
+    try{
+        const {applicationId} = req.body;
+        const {id} = req.user;
+
+        if(!applicationId || !id){
+            return res.status(404).json({
+                success : false,
+                message : "Application ID Is Missing"
+            })
+        }
+
+        const outingApplication = await Prisma.outingApplication.findUnique({where : {id : applicationId}});
+        if(!outingApplication || outingApplication.status !== "INPROGRESS"){
+            return res.status(400).json({
+                success : false,
+                message : "No outing application found with INPROGRESS status and the provided ID."
+            })
+        }
+
+        const currentDate = new Date();
+        const currentDateIST = new Date(currentDate.getTime() + (330*60*1000));
+
+        if(currentDateIST <= outingApplication.to){
+            await Prisma.outingApplication.update({
+                where : {
+                    id: applicationId
+                },
+                data : {
+                    status : "COMPLETED",
+                    remarks : null,
+                }
+            })
+        }
+
+        return res.status(200).json({
+            success : true,
+            message : "Outing Application Is Marked As Completed Without Delay."
+        })
+    }
+    catch(e){
+        console.log(e);
+        return res.status(500).json({
+            success : false,
+            message : "Failed To Mark Completed In Outing Application.Please Try Again."
+        })
+    }
+}
+
+exports.markCompletedOutingWithDelay = async ( req,res) => {
+    try{
+        const {applicationId , remarks} = req.body;
+        const {id} = req.user;
+
+        if(!applicationId || ! remarks) {
+            return res.status(404).json({
+                success : false,
+                message : "Data Is Missing"
+            })
+        }
+
+        const outingApplication = await Prisma.outingApplication.findUnique({where : {id : applicationId}});
+
+        if(!applicationId || outingApplication.status !== "INPROGRESS"){
+            return res.status(400).json({
+                success : false,
+                message : "No outing application found with INPROGRESS status and the provided ID."
+            })
+        }
+
+        const currentDate = new Date();
+        const currentDateIST = new Date(currentDate.getTime() + (330*60*1000));
+
+        if(currentDateIST > outingApplication.to){
+            await Prisma.outingApplication.update({
+                where : {id : applicationId},
+                data : {
+                    status : "COMPLETED",
+                    remarks : `Returned With Delay On ${currentDateIST.toISOString}`
+                }
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findUnique({
+            where : {id : outingApplication.instituteStudentId}
+        })
+
+        await Prisma.instituteStudent.update({
+            where : {
+                id : studentDetails.id
+            },
+            data : {
+                outingRating : studentDetails.outingRating - 0.5,
+            }
+        })
+
+        return res.status(200).json({
+            success : true,
+            message : "Outing Application Marked As Completed With Remarks For Delay. Outing Rating Decreased By 0.5."
+        })
+    }
+    catch(e){
+        console.log(e);
+        return res.status(500).json({
+            success : false,
+            message : "Failed To Mark Completed In Outing Application.Please Try Again."
+        })
+
     }
 }
 

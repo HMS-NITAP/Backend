@@ -36,6 +36,8 @@ enum ApplicationStatus {
   ACCEPTED
   REJECTED
   PENDING
+  INPROGRESS
+  COMPLETED
 }
 
 enum MessSession {
@@ -243,6 +245,7 @@ model OutingApplication {
   instituteStudent          InstituteStudent                   @relation(fields: [instituteStudentId], references: [id])
   hostelBlockId             Int
   hostelBlock               HostelBlock                        @relation(fields: [hostelBlockId], references: [id])
+  remark                    String?                            @db.VarChar(255)
 }
 
 model HostelComplaint {

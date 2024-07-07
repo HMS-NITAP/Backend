@@ -3,14 +3,15 @@ const router = express.Router();
 
 const {authMiddlewares} = require("../middlewares");
 const {studentController} = require('../controllers');
+const { auth } = require("../middlewares/auth");
 
 // OUTING APPILICATION APIs
 router.post('/createOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
 router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
-router.get('/getStudentAllOutingApplications',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAllOutingApplications);
-router.put('/updateOutingApplicationStatus',authMiddlewares.auth,authMiddlewares.isOfficial,studentController.updateOutingApplicationStatus);
-router.post('/markOutingInProgress',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markOutingInProgress);
-router.post('/markReturnOuting',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markReturnOuting);
+router.get("/getPendingOutingApplications",authMiddlewares.auth,authMiddlewares.isStudent,studentController.getPendingOutingApplications);
+router.get("/getRejectedOutingApplications",authMiddlewares.auth,authMiddlewares.isStudent,studentController.getRejectedOutingApplications);
+router.get("/getInProgressOutingApplications",authMiddlewares.auth,authMiddlewares.isStudent,studentController.getInProgressOutingApplications);
+router.get("/getCompletedOutingApplications",authMiddlewares.auth,authMiddlewares.isStudent,studentController.getCompletedOutingApplications)
 
 // HOSTEL COMPLAINTS APIs
 router.post('/createHostelComplaint',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createHostelComplaint);
