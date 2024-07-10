@@ -420,6 +420,7 @@ exports.fetchHostelBlockNames = async(_,res) => {
             data:hostels,
         })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to fetch hostels",
