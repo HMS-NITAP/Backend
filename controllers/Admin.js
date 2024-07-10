@@ -2,12 +2,17 @@ const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 const {uploadMedia} = require('../utilities/MediaUploader');
 const bcrypt = require("bcrypt")
+const PdfGenerator = require("../utilities/PdfGenerator");
+const SendEmail = require('../utilities/MailSender');
+const fs = require("fs");
+const acknowledgementLetter = require('../mailTemplates/acknowledgementLetter');
+const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttachment');
+const rejectionLetter = require('../mailTemplates/rejectionLetter');
 
 exports.createHostelBlock = async(req,res) => {
     try{
         const {name,roomType,gender,floorCount,capacity,year} = req.body;
         const {image} = req.files;
-        console.log(name,roomType,gender,floorCount,capacity,image,year);
         if(!name || !image || !roomType || !gender || !floorCount || !capacity || !year){
             return res.status(404).json({
                 success:false,
@@ -15,7 +20,7 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        const uploadedFile = await uploadMedia(image,process.env.FOLDER_NAME);
+        const uploadedFile = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES,null,50);
         if(!uploadedFile){
             return res.status(400).json({
                 success:false,
@@ -220,7 +225,7 @@ exports.createOfficialAccount = async(req,res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password,10);
-        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"OFFICIAL"}});
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"OFFICIAL",status:"ACTIVE"}});
         if(!user){
             return res.status(400).json({
                 success:false,
@@ -305,6 +310,174 @@ exports.fetchOfficialAccounts = async(_,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable To Fetch Accounts",
+        })
+    }
+}
+
+exports.fetchRegistrationApplications = async(_,res) => {
+    try{
+        const studentApplication = await Prisma.user.findMany({
+            where : {
+                accountType : "STUDENT",
+                status : "INACTIVE",
+            },
+            include:{
+                instituteStudent:{
+                    include:{
+                        cot : {
+                            include : {room : true}
+                        },
+                        hostelBlock : true,
+                    }
+                }   
+            }
+        })
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Applications Successfully",
+            data:studentApplication,
+        })
+    }catch(e){
+        return res.status(403).json({
+            success:false,
+            message:"Unable to fetch Applications",
+        })
+    }
+}
+
+exports.acceptRegistrationApplication = async(req,res) => {
+    try{
+        let {userId} = req.body;
+        if(userId === null){
+            return res.status(404).json({
+                success:false,
+                message:"User Id Not Found",
+            })
+        }
+
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Details Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "INACTIVE"){
+            return res.status(400).json({
+                success:false,
+                message:"Account Already Active",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Details Not Found",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Id Not Found",
+            })
+        }
+        // ALSO CREATE HOSTEL ATTENDENCE RECORDS
+        await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
+
+        try{
+            let date = new Date();
+            date = date.toLocaleDateString();
+            console.log("DAte",date);
+            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            fs.unlinkSync(pdfPath);
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Accepted Registration Application",
+        })
+
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Accept Registration Application",
+        })
+    }
+}
+
+exports.rejectRegistrationApplication = async(req,res) => {
+    try{
+        let {userId,remarks} = req.body;
+        if(!userId || !remarks){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
+        userId = parseInt(userId);
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Created",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Not Found",
+            })
+        }
+
+        await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status:"AVAILABLE"}});
+        await Prisma.instituteStudent.delete({where : {id : studentDetails?.id}});
+        await Prisma.user.delete({where : {id : userId}});
+
+        try{
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT APPLICATION DECLINED | NIT ANDHRA PRADESH",rejectionLetter(remarks));
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Rejection Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Application Rejected",
+        })
+    }catch(e){
+        console.log("ERROR",e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Reject Registration Application"
         })
     }
 }

@@ -26,7 +26,7 @@ exports.createAnnouncement = async(req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
+            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_DOCS);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
@@ -336,7 +336,24 @@ exports.getAllUnresolvedComplaintsByHostelBlock = async(req,res) => {
             })
         }
 
-        const unresolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"UNRESOLVED"},include:{instituteStudent:true}, orderBy:{createdAt:'asc'}});
+        const unresolvedComplaints = await Prisma.hostelComplaint.findMany({
+            where: { hostelBlockId: hostelBlockId, status: "UNRESOLVED" },
+            include: {
+              instituteStudent: {
+                select: {
+                  name: true,
+                  cot: {
+                    include: {
+                      room: true
+                    }
+                  }
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'asc'
+            }
+          });
         return res.status(200).json({
             success:true,
             message:"Successfully Fetched All UnResolved Complaints",
@@ -377,7 +394,31 @@ exports.getAllResolvedComplaintsByHostelBlock = async(req,res) => {
             })
         }
 
-        const resolvedComplaints = await Prisma.hostelComplaint.findMany({where:{hostelBlockId:hostelBlockId,status:"RESOLVED"},include:{instituteStudent:true},orderBy:{createdAt:'asc'}});
+        const resolvedComplaints = await Prisma.hostelComplaint.findMany({
+            where: { hostelBlockId: hostelBlockId, status: "RESOLVED" },
+            include: {
+              instituteStudent: {
+                select: {
+                  name: true,
+                  cot: {
+                    include: {
+                      room: true
+                    }
+                  }
+                }
+              },
+              resolvedBy: {
+                select: {
+                  name: true,
+                  designation: true,
+                }
+              }
+            },
+            orderBy: {
+              createdAt: 'asc'
+            }
+          });
+          
         return res.status(200).json({
             success:true,
             message:"Successfully Fetched All Resolved Complaints",
@@ -385,6 +426,7 @@ exports.getAllResolvedComplaintsByHostelBlock = async(req,res) => {
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to Fetch Complaints"
@@ -404,6 +446,20 @@ exports.resolveHostelComplaint = async(req,res) => {
             })
         }
 
+        const officialDetails = await Prisma.official.findFirst({where : {userId : id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Official Account Not Found",
+            })
+        }
+        if(officialDetails?.hostelBlockId === null){
+            return res.status(400).json({
+                success:false,
+                message:"Official Not Assigned Hostel Block",
+            })
+        }
+
         const complaintDetails = await Prisma.hostelComplaint.findUnique({where : {id:complaintId}});
         if(!complaintDetails){
             return res.status(404).json({
@@ -419,7 +475,7 @@ exports.resolveHostelComplaint = async(req,res) => {
             })
         }
 
-        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"RESOLVED"}});
+        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"RESOLVED", resolvedOn:new Date(), resolvedById:officialDetails?.id}});
         return res.status(200).json({
             success:true,
             message:"Resolved the Complaint Successfully",
@@ -461,13 +517,14 @@ exports.unresolveHostelComplaint = async(req,res) => {
             })
         }
 
-        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"UNRESOLVED"}});
+        await Prisma.hostelComplaint.update({where:{id:complaintId}, data:{status:"UNRESOLVED",resolvedById:null,resolvedOn:null}});
         return res.status(200).json({
             success:true,
             message:"Unresolved the Complaint Successfully",
         })
         
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:true,
             message:"Unable to unresolve the Hostel Complaint",
@@ -486,10 +543,16 @@ exports.getAllStudentsByHostelBlockForAttendence = async(req,res) => {
         }
 
         const officialDetails = await Prisma.official.findFirst({where:{userId:id}});
-        if(!officialDetails || !(officialDetails?.hostelBlockId)){
+        if(!officialDetails){
             return res.status(404).json({
                 success:false,
                 message:"Data Not Found",
+            })
+        }
+        if(officialDetails?.hostelBlockId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block Not Assigned",
             })
         }
 
@@ -620,6 +683,133 @@ exports.unMarkStudentAbsent = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to Unmark Student Absent",
+        })
+    }
+}
+
+
+// NEW ATTENDANCE
+exports.fetchRoomsInHostelBlock = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"ID is Missing",
+            })
+        }
+
+        const officialDetails = await Prisma.official.findFirst({where:{userId:id}});
+        if(!officialDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Data Not Found",
+            })
+        }
+        if(officialDetails?.hostelBlockId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block Not Assigned",
+            })
+        }
+
+        const hostelRooms = await Prisma.hostelBlock.findUnique({
+            where: { id: officialDetails?.hostelBlockId },
+            include: {
+              rooms: {
+                orderBy: {
+                  roomNumber: 'asc',
+                },
+                include: {
+                  cots: {
+                    orderBy: {
+                      cotNo: 'asc',
+                    },
+                    include: {
+                      student: {
+                        include: {
+                          attendence: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          });
+          
+          
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Attendence Records Successfully",
+            data:hostelRooms,
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Students",
+        })
+    }
+}
+
+exports.updateAttendanceRecords = async(req,res) => {
+    try{
+        const { date, presentStudents, absentStudents } = req.body;
+
+        if (!date || !Array.isArray(presentStudents) || !Array.isArray(absentStudents)) {
+            return res.status(402).json({
+                success:false,
+                meesage:"Data Invalid",
+            })
+        }
+
+        const markStudentAttendance = async (studentId, isPresent) => {
+            const studentAttendance = await Prisma.studentAttendence.findUnique({
+            where: { studentId },
+            });
+
+            if(studentAttendance){
+                let { presentDays, absentDays } = studentAttendance;
+                presentDays = presentDays.filter(d => d !== date);
+                absentDays = absentDays.filter(d => d !== date);
+
+                if(isPresent){
+                    presentDays.push(date);
+                }else{
+                    absentDays.push(date);
+                }
+
+                await Prisma.studentAttendence.update({
+                    where: { studentId },
+                    data: { presentDays, absentDays },
+                });
+
+            }else{
+                console.error(`Attendance record for studentId ${studentId} not found`);
+            }
+        };
+
+        const promises = [];
+
+        presentStudents.forEach(studentId => {
+            promises.push(markStudentAttendance(studentId, true));
+        });
+
+        absentStudents.forEach(studentId => {
+            promises.push(markStudentAttendance(studentId, false));
+        });
+
+        await Promise.all(promises);
+
+        return res.status(200).json({
+            success:true,
+            message:"Updated Student Attendance Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:true,
+            message:"Updated Attendance Record Successfully",
         })
     }
 }

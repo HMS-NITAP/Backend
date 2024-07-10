@@ -6,6 +6,7 @@ const emailVerification = require('../mailTemplates/emailVerification');
 // const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
 const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
+const {uploadMedia} = require('../utilities/MediaUploader')
 
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
@@ -58,7 +59,7 @@ exports.sendOTP = async (req,res) => {
         return res.status(200).json({
             success:true,
             OTP:otp, // REMOVE THIS LINE BEFORE DEPLOYMENT
-            message:"OTP Successfully Created in DB",
+            message:"OTP Successfully Sent",
         })
     }catch(e){
         console.log(e);
@@ -69,13 +70,11 @@ exports.sendOTP = async (req,res) => {
     }
 }
 
-// User and instituteStudent/Official Tables both should be created at once, make it atomic
-// Handle expire date of OTP --> delete them after 5 mins time
 exports.signup = async(req,res) => {
     try{
-        const {email,password,confirmPassword,accountType,otp} = req.body;
+        const {email,password,confirmPassword,otp} = req.body;
 
-        if(!email || !password || !confirmPassword || !accountType || !otp){
+        if(!email || !password || !confirmPassword || !otp){
             return res.status(400).json({
                 success:false,
                 message:"Some data Not Found",
@@ -112,14 +111,9 @@ exports.signup = async(req,res) => {
         };
 
         const hashedPassword = await bcrypt.hash(password,10);
-        const details = await Prisma.user.create({data:{email,password:hashedPassword,accountType}});
-        console.log("Details : ",details);
-        if(accountType === "STUDENT"){
-            const studentDetails = await Prisma.instituteStudent.create({data : {regNo:null,rollNo:null,name:null,year:null,branch:null,gender:null,pwd:null,community:null,aadharNumber:null,dob:null,bloodGroup:null,fatherName:null,motherName:null,phone:null,parentsPhone:null,emergencyPhone:null,address:null,isHosteller:null,outingRating:5.0,disciplineRating:5.0,userId:details?.id, hostelBlockId:1, messHallId:1, cotNo:"1",floorNo:"1",roomNo:"104"}});
-            await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id, hostelBlockId:1}});
-        }else if(accountType === "OFFICIAL"){
-            await Prisma.official.create({data : {empId:null,name:null,designation:null,gender:null,phone:null,userId: details?.id, hostelBlockId:1}});
-        }
+
+        await Prisma.user.create({data:{email,password:hashedPassword,accountType:"ADMIN",status:"ACTIVE"}});
+
         return res.status(200).json({
             success:true,
             message:"User Registered Successfully",
@@ -150,6 +144,12 @@ exports.login = async(req,res) => {
                 message:"User not Registered",
             });
         };
+        if(ifUserExists && ifUserExists?.status === "INACTIVE"){
+            return res.status(401).json({
+                success:false,
+                message:"Account Not Active",
+            })
+        }
 
         const passwordMatch = await bcrypt.compare(password,ifUserExists.password);
         if(passwordMatch){
@@ -313,6 +313,165 @@ exports.resetPassword = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Reset Password Failed",
+        })
+    }
+}
+
+exports.verifyOTP = async(req,res) => {
+    try{
+        const {email,password,confirmPassword,otp} = req.body;
+
+        if(!email || !password || !confirmPassword || !otp){
+            return res.status(400).json({
+                success:false,
+                message:"Some data Not Found",
+            })
+        }
+        if(password !== confirmPassword){
+            return res.status(400).json({
+                success:false,
+                message:"Both passwords are not matching",
+            });
+        };
+        const isUserExistsAlready = await Prisma.user.findFirst({where : {email}});
+        if(isUserExistsAlready){
+            return res.status(401).json({
+                success:false,
+                message:"User Already Registered",
+            });
+        };
+        
+        const mostRecentOTP = await Prisma.oTP.findFirst({
+            where: { email },
+            orderBy: { createdAt: 'desc' }
+        });
+        if(!mostRecentOTP){
+            return res.status(404).json({
+                success:false,
+                message:"OTP not found",
+            });
+        }else if(mostRecentOTP.otp !== otp){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid OTP",
+            })
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"OTP Verified!",
+        })
+
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unalbe to Verify OTP",
+        })
+    }
+}
+
+exports.createStudentAccount = async(req,res) => {
+    try{
+        const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
+        const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
+
+        if(!email || password===null || confirmPassword===null || !name || !regNo || !rollNo || !year || !branch || !gender || pwd===null || !community || !aadhaarNumber || !dob || !bloodGroup || !fatherName || !motherName || phone===null || parentsPhone===null || emergencyPhone===null || !address || !paymentMode || !paymentDate || !amountPaid || hostelBlockId===null || cotId===null){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
+        if(!image || !hostelFeeReceipt || !instituteFeeReceipt){
+            return res.status(404).json({
+                success:false,
+                message:"File Missing",
+            })
+        }
+
+        if(password !== confirmPassword){
+            return res.status(401).json({
+                success:false,
+                message:"Both Passwords are Not Matching",
+            })
+        }
+
+        const ifUserExistsAlready = await Prisma.user.findFirst({where : {email}});
+        if(ifUserExistsAlready){
+            return res.status(402).json({
+                success:false,
+                message:"User Already Registered",
+            })
+        }
+
+        const cotDetails = await Prisma.cot.findUnique({where : {id : parseInt(cotId)}});
+        if(!cotDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Not Found",
+            })
+        }
+        if(cotDetails?.status !== "AVAILABLE"){
+            return res.status(402).json({
+                success:false,
+                message:"Cot Not Available",
+            })
+        }
+
+        const uploadedImage = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        if(!uploadedImage){
+            return res.status(400).json({
+                success:false,
+                message:"Image Upload Failed",
+            })
+        }
+
+        const uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS)
+        if(!uploadedInstituteFeeReceipt){
+            return res.status(400).json({
+                success:false,
+                message:"Institite Fee Receipt Upload Failed",
+            })
+        }
+
+        const uploadedHostelFeeReceipt = await uploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS)
+        if(!uploadedHostelFeeReceipt){
+            return res.status(400).json({
+                success:false,
+                message:"Hostel Fee Receipt Upload Failed",
+            })
+        }
+
+        const hashedPassword = await bcrypt.hash(password,10);
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
+        if(!user){
+            return res.status(401).json({
+                success:false,
+                message:"Unable to Create User",
+            })
+        }
+
+        const userId = user?.id;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"User ID Not Found",
+            })
+        }
+
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.secure_url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.secure_url,hostelFeeReceipt:uploadedHostelFeeReceipt?.secure_url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Student Account Registered Successfully",
+        })
+    }catch(e){
+        console.log("ERROR",e);
+        return res.status(401).json({
+            success:false,
+            message:"Unable to create Student Account",
         })
     }
 }

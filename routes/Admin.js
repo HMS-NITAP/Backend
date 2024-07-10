@@ -13,5 +13,8 @@ router.delete('/deleteMessHall',authMiddlewares.auth,authMiddlewares.isAdmin,adm
 router.post('/createOfficialAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.createOfficialAccount);
 router.delete('/deleteOfficialAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteOfficialAccount);
 router.get('/fetchOfficialAccounts',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchOfficialAccounts);
+router.get('/fetchRegistrationApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRegistrationApplications);
+router.put('/acceptRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptRegistrationApplication);
+router.put('/rejectRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectRegistrationApplication);
 
 module.exports = router;

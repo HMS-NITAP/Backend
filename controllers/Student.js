@@ -304,8 +304,6 @@ exports.markReturnOuting = async (req,res) => {
     }
 }
 
-
-
 exports.createHostelComplaint = async (req,res) => {
     try{
         const {id} = req.user;
@@ -331,7 +329,7 @@ exports.createHostelComplaint = async (req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME);
+            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_IMAGES);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
@@ -415,7 +413,7 @@ exports.showAllStudentComplaints = async (req,res) => {
 
         const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
 
-        const complaints = await Prisma.hostelComplaint.findMany({where:{instituteStudentId:studentDetails?.id}, orderBy:{createdAt:'desc'}});
+        const complaints = await Prisma.hostelComplaint.findMany({where:{instituteStudentId:studentDetails?.id}, include:{resolvedBy:true}, orderBy:{createdAt:'desc'}});
         return res.status(200).json({
             success:true,
             message:"Successfully Fetched All complaints",
@@ -508,7 +506,7 @@ exports.deleteMessFeedBack = async(req,res) => {
 
 exports.getStudentDashboardData = async(req,res) => {
     try{
-        const {id} = req.user;
+        const id = req.user.id;
         if(!id){
             return res.status(404).json({
                 success:false,
@@ -516,22 +514,21 @@ exports.getStudentDashboardData = async(req,res) => {
             })
         }
 
-        const instituteStudentDetails = await Prisma.instituteStudent.findFirst({where : {userId:id}});
-        const complaintsRegistered = await Prisma.hostelComplaint.count({where : {instituteStudentId:instituteStudentDetails?.id}});
-        const attendenceRecords = await Prisma.studentAttendence.findFirst({where : {studentId:instituteStudentDetails?.id}});
-        const hostelBlockData = await Prisma.hostelBlock.findUnique({where : {id : instituteStudentDetails?.hostelBlockId}});
-        const messHallData = await Prisma.messHall.findUnique({where : {id : instituteStudentDetails?.messHallId}});
-        // if(!instituteStudentDetails || complaintsRegistered===null || !attendenceRecords || !){
-        //     return res.status(404).json({
-        //         success:false,
-        //         message:"Data Not Found",
-        //     })
-        // }
+        const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,attendence:true,messHall:true,cot:{include:{room:true}}}});
+        
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Data Not Found",
+            })
+        }
+
+        console.log("STUDENT DETAILS",studentDetails);
 
         return res.status(200).json({
             success:true,
             message:"Fetched Dashboard Data Successfully",
-            data : {userData : req.user,instituteStudentData : instituteStudentDetails,numberOfComplaintsRegistered : complaintsRegistered,attendenceRecords : attendenceRecords, hostelBlockData : hostelBlockData, messHallData : messHallData},
+            data : {userData : req.user,data : studentDetails},
         })
 
     }catch(e){
@@ -591,6 +588,12 @@ exports.getStudentAttendance = async(req,res) => {
         }
 
         const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId:id}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student details Not Found",
+            })
+        }
 
         const attendanceData = await Prisma.studentAttendence.findFirst({where : {studentId:studentDetails?.id}});
         if(!attendanceData){

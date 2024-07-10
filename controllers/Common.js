@@ -1,5 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const Prisma = new PrismaClient();
+const resetPassword = require('../mailTemplates/resetPassword');
+const PdfGenerator = require("../utilities/PdfGenerator");
+const SendEmail = require('../utilities/MailSender');
+const fs = require("fs");
+const acknowledgementLetter = require('../mailTemplates/acknowledgementLetter');
+const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttachment');
 
 exports.getAllAnnouncements = async(_,res) => {
     try{
@@ -29,7 +35,6 @@ exports.fetchAllHostelData = async(_,res) => {
             },
           });
 
-          console.log(hostelData);
         return res.status(200).json({
             success:true,
             message:"Data fetched Successfully",
@@ -403,5 +408,76 @@ exports.getMessRatingAndReview = async (req,res) => {
             message : "Unable to fetch rating and review of the mess session."
         })
 
+    }
+}
+
+exports.fetchHostelBlockNames = async(_,res) => {
+    try{
+        const hostels = await Prisma.hostelBlock.findMany({});
+        return res.status(200).json({
+            success:true,
+            message:"Hostels Fetched Successfully",
+            data:hostels,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch hostels",
+        })
+    }
+}
+
+exports.fetchHostelBlockRooms = async(req,res) => {
+    try{
+        const {hostelBlockId} = req.body;
+
+        const hostelBlockRooms = await Prisma.room.findMany({
+            where: {
+              hostelBlockId: hostelBlockId,
+            },
+            include: {
+              cots: {
+                select: {
+                  id: true,
+                  cotNo: true,
+                  status: true,
+                },
+                orderBy:{
+                    cotNo : "asc",
+                }
+              }
+            }
+        }); 
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Hostel Block Rooms Successfully",
+            data:hostelBlockRooms,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch Hostel Block Rooms"
+        })
+    }
+}
+
+exports.tryPDF = async(_,res) => {
+    try{
+        console.log("HERE");
+        const pdfPath = await PdfGenerator(acknowledgementAttachment("22-07-2024","https://res.cloudinary.com/dwt1vmf2u/image/upload/v1716227467/HMS%20NIT%20AP/w4rm3lg5bnp0i9haz88l.jpg","T Abhiram","7478327120","3rd Year","422259","9222412","Net Banking","30501.00","Nagavali","104","2"), "Abhiram.pdf");
+        await SendEmail("tanneriabhi@gmail.com","HOSTEL ALLOTTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,"Abhiram.pdf");
+        fs.unlinkSync(pdfPath);
+        
+        return res.status(200).json({
+            success: true,
+            message: "Send EMAIL Successfully",
+        });
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success: false,
+            message: "Unable to GENERATE PDF",
+        });
     }
 }

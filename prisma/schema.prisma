@@ -7,6 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum AccountType {
   ADMIN
   STUDENT
@@ -82,6 +87,21 @@ enum Community {
   ST  
 }
 
+enum CotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+enum PaymentMode {
+  CREDIT_CARD
+  DEBIT_CARD
+  NET_BANKING
+  NEFT
+  UPI
+  OTHER
+}
+
 model User {
   id                      Int                 @id @default(autoincrement())
   email                   String              @unique @db.VarChar(255)
@@ -90,9 +110,10 @@ model User {
   createdAt               DateTime            @default(now())  @db.Timestamp(6)
   token                   String?             @default("") @db.VarChar(255) 
   resetPasswordExpiresIn  DateTime            @default(now())  @db.Timestamp(6)
+  status                  AccountStatus
   instituteStudent        InstituteStudent?
-  worker                  Worker?
-  security                Security?
+  // worker                  Worker?
+  // security                Security?
   official                Official?
 }
 
@@ -105,66 +126,45 @@ model OTP {
 }
 
 model InstituteStudent {
-  id                Int                   @id @default(autoincrement())
-  regNo             String                @db.VarChar(255)
-  rollNo            String                @db.VarChar(255)
-  name              String                @db.VarChar(255)
-  image             String                @db.VarChar(255)
-  year              String                @db.VarChar(255)  
-  branch            Branch
-  gender            Gender
-  pwd               Boolean                                 
-  community         Community
-  aadharNumber      String                @db.VarChar(255)
-  dob               DateTime 
-  bloodGroup        String                @db.VarChar(255)
-  fatherName        String                @db.VarChar(255)
-  motherName        String                @db.VarChar(255)
-  phone             String                @db.VarChar(255)
-  parentsPhone      String                @db.VarChar(255)
-  emergencyPhone    String                @db.VarChar(255)
-  address           String                @db.VarChar(1000)
-  isHosteller       Boolean
-  outingRating      Decimal         
-  disciplineRating  Decimal         
-  userId            Int                   @unique
-  user              User                  @relation(fields: [userId],references: [id])
-  outingApplication OutingApplication[] 
-  hostelBlockId     Int
-  hostelBlock       HostelBlock           @relation(fields: [hostelBlockId], references: [id])
-  hostelComplaints  HostelComplaint[]
-  // medicalIssue      MedicalIssue[]
-  attendence        StudentAttendence?     
-  cotNo             String?               @db.VarChar(255)
-  floorNo           String?               @db.VarChar(255)
-  roomNo            String?               @db.VarChar(255)
-  messHallId        Int                   
-  messHall          MessHall              @relation(fields: [messHallId], references: [id])
-  messRating        MessRatingAndReview[]
-}
-
-model Worker {
-  id            Int           @id @default(autoincrement())
-  staffId       String        @db.VarChar(255)
-  name          String        @db.VarChar(255)
-  designation   String        @db.VarChar(255)
-  gender        Gender       
-  phone         String        @db.VarChar(255)
-  user          User          @relation(fields: [userId], references: [id])
-  userId        Int           @unique
-}
-
-model Security {
-  id            Int           @id @default(autoincrement())
-  securityId    String        @db.VarChar(255)
-  name          String        @db.VarChar(255)
-  designation   String        @db.VarChar(255)
-  gender        Gender       
-  phone         String        @db.VarChar(255)
-  user          User          @relation(fields: [userId], references: [id])
-  userId        Int           @unique
-  hostelBlockId Int
-  hostelBlock   HostelBlock   @relation(fields: [hostelBlockId], references: [id])
+  id                    Int                   @id @default(autoincrement())
+  regNo                 String                @db.VarChar(255)
+  rollNo                String                @db.VarChar(255)
+  name                  String                @db.VarChar(255)
+  image                 String                @db.VarChar(255)
+  year                  String                @db.VarChar(255)  
+  branch                Branch
+  gender                Gender
+  pwd                   Boolean                                 
+  community             Community
+  aadhaarNumber         String                @db.VarChar(255)
+  dob                   String 
+  bloodGroup            String                @db.VarChar(255)
+  fatherName            String                @db.VarChar(255)
+  motherName            String                @db.VarChar(255)
+  phone                 String                @db.VarChar(255)
+  parentsPhone          String                @db.VarChar(255)
+  emergencyPhone        String                @db.VarChar(255)
+  address               String                @db.VarChar(1000)
+  instituteFeeReceipt   String                @db.VarChar(255)
+  hostelFeeReceipt      String                @db.VarChar(255)
+  amountPaid            String                @db.VarChar(255)
+  paymentDate           String                @db.VarChar(255)
+  paymentMode           PaymentMode
+  outingRating          Decimal         
+  disciplineRating      Decimal         
+  userId                Int                   @unique
+  user                  User                  @relation(fields: [userId], references: [id])
+  outingApplication     OutingApplication[] 
+  hostelBlockId         Int
+  hostelBlock           HostelBlock           @relation(fields: [hostelBlockId], references: [id])
+  hostelComplaints      HostelComplaint[]
+  attendence            StudentAttendence?     
+  cotId                 Int                   @unique
+  cot                   Cot?                  @relation(fields: [cotId], references: [id])
+  messHallId            Int?                   
+  messHall              MessHall?             @relation(fields: [messHallId], references: [id])
+  messRating            MessRatingAndReview[]
+  messRecord            StudentMessRecords?
 }
 
 model Official {
@@ -178,6 +178,7 @@ model Official {
   hostelBlockId Int?
   hostelBlock   HostelBlock?  @relation(fields: [hostelBlockId], references: [id], onDelete: SetNull)
   announcement  Announcement[]
+  complaints    HostelComplaint[]
 }
 
 model HostelBlock {
@@ -191,12 +192,31 @@ model HostelBlock {
   year                String        @db.VarChar(255)
   createdAt           DateTime      @default(now()) @db.Timestamp(6)
   wardens             Official[]    
-  security            Security[] 
   students            InstituteStudent[]
+  rooms               Room[]
   outingApplications  OutingApplication[]
   hostelComplaints    HostelComplaint[]
-  studentAttendence   StudentAttendence[]
-} 
+}
+
+model Room {
+  id                  Int           @id @default(autoincrement())
+  hostelBlockId       Int
+  hostelBlock         HostelBlock   @relation(fields: [hostelBlockId], references: [id])
+  roomNumber          Int          
+  floorNumber         Int
+  cots                Cot[]
+  createdAt           DateTime      @default(now()) @db.Timestamp(6)
+}
+
+model Cot {
+  id                  Int           @id @default(autoincrement())
+  cotNo               Int
+  roomId              Int
+  room                Room          @relation(fields: [roomId], references: [id])
+  status              CotStatus     @default(AVAILABLE)
+  createdAt           DateTime      @default(now()) @db.Timestamp(6)
+  student             InstituteStudent?
+}
 
 model Announcement {
   id             Int            @id @default(autoincrement())
@@ -216,6 +236,7 @@ model MessHall {
   messRatingAndReviews      MessRatingAndReview[]
   createdAt                 DateTime                @default(now()) @db.Timestamp(6)
   students                  InstituteStudent[]
+  studentMessRecords        StudentMessRecords[]
 }
 
 model MessRatingAndReview {
@@ -256,19 +277,52 @@ model HostelComplaint {
   createdAt                 DateTime                        @default(now()) @db.Timestamp(6)
   instituteStudentId        Int                             
   instituteStudent          InstituteStudent                @relation(fields: [instituteStudentId], references: [id])
+  resolvedOn                DateTime?                       @default(dbgenerated("NULL"))
+  resolvedById              Int?
+  resolvedBy                Official?                       @relation(fields: [resolvedById], references: [id])
 }
 
 model StudentAttendence {
   id                              Int                     @id @default(autoincrement())
   studentId                       Int                     @unique
   student                         InstituteStudent        @relation(fields: [studentId], references: [id])
-  hostelBlockId                   Int                     
-  hostelBlock                     HostelBlock             @relation(fields: [hostelBlockId], references: [id])
   presentDays                     String[]                
   absentDays                      String[]                  
-  lastUpdated                     DateTime                @updatedAt
+  lastUpdated                     DateTime                @default(now()) @updatedAt
 }
 
+model StudentMessRecords {
+  id                              Int                     @id @default(autoincrement())
+  studentId                       Int                     @unique
+  student                         InstituteStudent?       @relation(fields: [studentId], references: [id])
+  messHallId                      Int?
+  messHall                        MessHall?               @relation(fields: [messHallId], references: [id])
+  availed                         Json                    @db.Json
+}
+
+// model Worker {
+//   id            Int           @id @default(autoincrement())
+//   staffId       String        @db.VarChar(255)
+//   name          String        @db.VarChar(255)
+//   designation   String        @db.VarChar(255)
+//   gender        Gender       
+//   phone         String        @db.VarChar(255)
+//   user          User          @relation(fields: [userId], references: [id])
+//   userId        Int           @unique
+// }
+
+// model Security {
+//   id            Int           @id @default(autoincrement())
+//   securityId    String        @db.VarChar(255)
+//   name          String        @db.VarChar(255)
+//   designation   String        @db.VarChar(255)
+//   gender        Gender       
+//   phone         String        @db.VarChar(255)
+//   user          User          @relation(fields: [userId], references: [id])
+//   userId        Int           @unique
+//   hostelBlockId Int
+//   hostelBlock   HostelBlock   @relation(fields: [hostelBlockId], references: [id])
+// }
 
 // model MedicalIssue {
 //   id                            Int                         @id @default(autoincrement())

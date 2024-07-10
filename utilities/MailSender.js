@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer")
 
-const SendEmail = async(email,title,body) => {
+const SendEmail = async(email,title,body,attachmentPath,attachmentName) => {
     try{
         const transporter = nodemailer.createTransport({
             service : process.env.MAIL_HOST,
@@ -10,17 +10,28 @@ const SendEmail = async(email,title,body) => {
             }
         });
 
-        let info = await transporter.sendMail({
+        const mailOptions = {
             from : "NIT Andhra Pradesh | Hostel Management System",
             to:email,
             subject:title,
-            html:body
-        })
-        
+            html:body,
+        }
+
+        if (attachmentPath) {
+            mailOptions.attachments = [
+                {
+                    filename: attachmentName,
+                    path: attachmentPath
+                }
+            ];
+        }
+
+        let info = await transporter.sendMail(mailOptions);
+
         return info;
     }catch(e){
         console.log("Error Sending Email");
-        console.log(e);
+        throw(e);
     }
 }
 

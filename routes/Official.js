@@ -28,4 +28,7 @@ router.put('/markStudentAbsent',authMiddlewares.auth,authMiddlewares.isOfficial,
 router.put('/unMarkStudentPresent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unMarkStudentPresent);
 router.put('/unMarkStudentAbsent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unMarkStudentAbsent);
 
+// NEW ATTENDANCE APIs
+router.get('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.fetchRoomsInHostelBlock);
+router.put('/updateAttendanceRecords',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.updateAttendanceRecords);
 module.exports = router;
