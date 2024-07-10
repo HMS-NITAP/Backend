@@ -4,9 +4,15 @@ const path = require("path");
 
 const PdfGenerator = async (htmlContent, filename) => {
     try {
+        // const browser = await puppeteer.launch({
+        //     args: ['--no-sandbox', '--disable-setuid-sandbox']
+        // });
+
         const browser = await puppeteer.launch({
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-        });
+            headless: true,
+            executablePath: `/usr/bin/google-chrome`,
+            args: [`--no-sandbox`, `--headless`, `--disable-gpu`, `--disable-dev-shm-usage`],
+          });
 
         const page = await browser.newPage();
         await page.setDefaultNavigationTimeout(60000);
