@@ -390,7 +390,8 @@ exports.acceptRegistrationApplication = async(req,res) => {
         // ALSO CREATE HOSTEL ATTENDENCE RECORDS
         await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
         const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
-
+        await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
+        
         try{
             let date = new Date();
             date = date.toLocaleDateString();

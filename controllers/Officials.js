@@ -3,6 +3,26 @@ const {uploadMedia} = require('../utilities/MediaUploader')
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 
+exports.getDashboardData = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const data = await Prisma.user.findUnique({where : {id}, include:{official:{include:{hostelBlock:{select:{name:true}}}}}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Data fetched Successfully",
+            data : data,
+        })
+        
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch Dashboard Data",
+        })
+    }
+}
+
 exports.createAnnouncement = async(req,res) => {
     try{
         const {id} = req.user;
@@ -689,7 +709,7 @@ exports.unMarkStudentAbsent = async(req,res) => {
 
 
 // NEW ATTENDANCE
-exports.fetchRoomsInHostelBlock = async(req,res) => {
+exports.fetchAttendanceDataInHostelBlock = async(req,res) => {
     try{
         const {id} = req.user;
         if(!id){
@@ -727,7 +747,9 @@ exports.fetchRoomsInHostelBlock = async(req,res) => {
                     },
                     include: {
                       student: {
-                        include: {
+                        select: {
+                          name: true,
+                          rollNo: true,
                           attendence: true,
                         },
                       },
@@ -737,6 +759,7 @@ exports.fetchRoomsInHostelBlock = async(req,res) => {
               },
             },
           });
+          
           
           
         return res.status(200).json({
@@ -749,67 +772,6 @@ exports.fetchRoomsInHostelBlock = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to Fetch Students",
-        })
-    }
-}
-
-exports.updateAttendanceRecords = async(req,res) => {
-    try{
-        const { date, presentStudents, absentStudents } = req.body;
-
-        if (!date || !Array.isArray(presentStudents) || !Array.isArray(absentStudents)) {
-            return res.status(402).json({
-                success:false,
-                meesage:"Data Invalid",
-            })
-        }
-
-        const markStudentAttendance = async (studentId, isPresent) => {
-            const studentAttendance = await Prisma.studentAttendence.findUnique({
-            where: { studentId },
-            });
-
-            if(studentAttendance){
-                let { presentDays, absentDays } = studentAttendance;
-                presentDays = presentDays.filter(d => d !== date);
-                absentDays = absentDays.filter(d => d !== date);
-
-                if(isPresent){
-                    presentDays.push(date);
-                }else{
-                    absentDays.push(date);
-                }
-
-                await Prisma.studentAttendence.update({
-                    where: { studentId },
-                    data: { presentDays, absentDays },
-                });
-
-            }else{
-                console.error(`Attendance record for studentId ${studentId} not found`);
-            }
-        };
-
-        const promises = [];
-
-        presentStudents.forEach(studentId => {
-            promises.push(markStudentAttendance(studentId, true));
-        });
-
-        absentStudents.forEach(studentId => {
-            promises.push(markStudentAttendance(studentId, false));
-        });
-
-        await Promise.all(promises);
-
-        return res.status(200).json({
-            success:true,
-            message:"Updated Student Attendance Successfully",
-        })
-    }catch(e){
-        return res.status(400).json({
-            success:true,
-            message:"Updated Attendance Record Successfully",
         })
     }
 }

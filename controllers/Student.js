@@ -514,7 +514,7 @@ exports.getStudentDashboardData = async(req,res) => {
             })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,attendence:true,messHall:true,cot:{include:{room:true}}}});
+        const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,messHall:true,cot:{include:{room:true}}}});
         
         if(!studentDetails){
             return res.status(404).json({

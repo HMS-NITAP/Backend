@@ -4,6 +4,9 @@ const router = express.Router();
 const {authMiddlewares} = require("../middlewares");
 const {officialController} = require('../controllers');
 
+// DASHBOARD APIs
+router.get("/getDashboardData",authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getDashboardData);
+
 // ANNOUNCEMENTS APIs
 router.post("/createAnnouncement",authMiddlewares.auth,authMiddlewares.isOfficial,officialController.createAnnouncement);
 router.delete("/deleteAnnouncement",authMiddlewares.auth,authMiddlewares.isOfficial,officialController.deleteAnnouncement);
@@ -29,6 +32,5 @@ router.put('/unMarkStudentPresent',authMiddlewares.auth,authMiddlewares.isOffici
 router.put('/unMarkStudentAbsent',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.unMarkStudentAbsent);
 
 // NEW ATTENDANCE APIs
-router.get('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.fetchRoomsInHostelBlock);
-router.put('/updateAttendanceRecords',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.updateAttendanceRecords);
+router.get('/fetchAttendanceDataInHostelBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.fetchAttendanceDataInHostelBlock);
 module.exports = router;
