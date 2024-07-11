@@ -125,7 +125,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
             <div class="container">
                 <div class="logoContainer">
                     <div>
-                        <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://media.licdn.com/dms/image/C560BAQEIWah9gNUmvQ/company-logo_200_200/0/1642324574360/national_institute_of_technology_andhra_pradesh_logo?e=1720656000&v=beta&t=Q_CV4msLCgKKiqiDxASvbOJHrCAgWivm7_qGxahLo1o" alt="NITAP Logo"></a>
+                        <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
                     </div>
                     <div class="main">
                         <p class="mainH1">NATIONAL INSTITUTE OF TECHNOLOGY , ANDHRA PRADESH </p>

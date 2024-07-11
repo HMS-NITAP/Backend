@@ -67,7 +67,7 @@ const acknowledgementLetter = () => {
 	<body>
 		<div class="container">
 			<a href="https://www.nitandhra.ac.in/main/"><img class="logo"
-					src="https://media.licdn.com/dms/image/C560BAQEIWah9gNUmvQ/company-logo_200_200/0/1642324574360/national_institute_of_technology_andhra_pradesh_logo?e=1720656000&v=beta&t=Q_CV4msLCgKKiqiDxASvbOJHrCAgWivm7_qGxahLo1o" alt="NITAP Logo"></a>
+					src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
 			<div class="message">Hostel Allottment Confirmed</div>
 			<div class="body">
 				<p>Dear Student,</p>
