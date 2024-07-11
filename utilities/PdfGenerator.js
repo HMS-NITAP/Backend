@@ -1,5 +1,5 @@
-// const puppeteer = require("puppeteer");
-const puppeteer = require('puppeteer-core');
+const puppeteer = require("puppeteer");
+// const puppeteer = require('puppeteer-core');
 const fs = require("fs");
 const path = require("path");
 
@@ -11,7 +11,7 @@ const PdfGenerator = async (htmlContent, filename) => {
 
         const browser = await puppeteer.launch({
             headless: true,
-            executablePath: '/usr/bin/google-chrome', // Adjust this path if necessary
+            // executablePath: '/usr/bin/google-chrome', // Adjust this path if necessary
             args: ['--no-sandbox', '--headless', '--disable-gpu', '--disable-dev-shm-usage'],
         });
 
