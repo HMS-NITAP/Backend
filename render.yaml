@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: your-service-name
+    name: backend
     env: node
     buildCommand: |
       apt-get update && apt-get install -y wget gnupg
