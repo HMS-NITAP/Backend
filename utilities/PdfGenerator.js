@@ -9,6 +9,7 @@ const PdfGenerator = async (htmlContent, filename) => {
         //     args: ['--no-sandbox', '--disable-setuid-sandbox']
         // });
 
+        // FOR RENDER HOSTING
         const browser = await puppeteer.launch({
             headless: true,
             // executablePath: '/usr/bin/google-chrome', // Adjust this path if necessary
