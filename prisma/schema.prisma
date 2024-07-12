@@ -38,9 +38,10 @@ enum OutingApplicationType {
 }
 
 enum ApplicationStatus {
-  ACCEPTED
+  INPROGRESS
   REJECTED
   PENDING
+  COMPLETED
 }
 
 enum MessSession {
@@ -168,17 +169,18 @@ model InstituteStudent {
 }
 
 model Official {
-  id            Int           @id @default(autoincrement())
-  name          String?       @db.VarChar(255)
-  designation   String?       @db.VarChar(255)
-  gender        Gender?      
-  phone         String?       @db.VarChar(255)
-  userId        Int           @unique
-  user          User          @relation(fields: [userId], references: [id])
-  hostelBlockId Int?
-  hostelBlock   HostelBlock?  @relation(fields: [hostelBlockId], references: [id], onDelete: SetNull)
-  announcement  Announcement[]
-  complaints    HostelComplaint[]
+  id                      Int                     @id @default(autoincrement())
+  name                    String?                 @db.VarChar(255)
+  designation             String?                 @db.VarChar(255)
+  gender                  Gender?      
+  phone                   String?                 @db.VarChar(255)
+  userId                  Int                     @unique
+  user                    User                    @relation(fields: [userId], references: [id])
+  hostelBlockId           Int?
+  hostelBlock             HostelBlock?            @relation(fields: [hostelBlockId], references: [id], onDelete: SetNull)
+  announcement            Announcement[]
+  complaints              HostelComplaint[]
+  outingApplications      OutingApplication[]
 }
 
 model HostelBlock {
@@ -259,6 +261,10 @@ model OutingApplication {
   placeOfVisit              String                             @db.VarChar(255)
   purpose                   String                             @db.VarChar(255)
   status                    ApplicationStatus
+  verifiedOn                DateTime?                          @default(dbgenerated("NULL"))
+  verifiedById              Int?
+  verifiedBy                Official?                          @relation(fields: [verifiedById], references: [id])
+  remarks                   String?                            @db.VarChar(255)
   createdAt                 DateTime                           @default(now()) @db.Timestamp(6)
   instituteStudentId        Int                                
   instituteStudent          InstituteStudent                   @relation(fields: [instituteStudentId], references: [id])

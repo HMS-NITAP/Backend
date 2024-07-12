@@ -621,6 +621,20 @@ exports.markStudentPresent = async(req,res) => {
             })
         }
 
+        const record = await Prisma.studentAttendence.findUnique({where : {id : attendenceRecordId}});
+        if(!record){
+            return res.status(404).json({
+                success:false,
+                message:"Attendence Record Not Found",
+            })
+        }
+        if(record?.presentDays.includes(presentDate)){
+            return res.status(200).json({
+                success:false,
+                message:"Student Already Marked Present for this Date",
+            })
+        }
+
         await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{presentDays:{push:presentDate}}});
         return res.status(200).json({
             success:true,
@@ -630,7 +644,7 @@ exports.markStudentPresent = async(req,res) => {
     }catch(e){
         return res.status(400).json({
             success:false,
-            message:"Unable to Give Student Present",
+            message:"Unable to Mark Student Present",
         })
     }
 }
@@ -645,13 +659,29 @@ exports.unMarkStudentPresent = async(req,res) => {
             })
         }
 
-        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{presentDays:{pop:presentDate}}});
+        const record = await Prisma.studentAttendence.findUnique({where : {id : attendenceRecordId}});
+        if(!record){
+            return res.status(404).json({
+                success:false,
+                message:"Attendence record Not Found",
+            })
+        }
+        if(!record?.presentDays.includes(presentDate)){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+
+        const updatedPresentDays = await record?.presentDays.filter((day) => day!=presentDate);
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{presentDays:updatedPresentDays}});
         return res.status(200).json({
             success:true,
-            message:"Student Unmarked Present Successfully",
+            message:"Unmarked Present Successfully",
         })
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to Unmark Student Present",
@@ -666,6 +696,20 @@ exports.markStudentAbsent = async(req,res) => {
             return res.status(404).json({
                 success:false,
                 message:"Data is Missing",
+            })
+        }
+
+        const record = await Prisma.studentAttendence.findUnique({where : {id : attendenceRecordId}});
+        if(!record){
+            return res.status(404).json({
+                success:false,
+                message:"Attendence Record Not Found",
+            })
+        }
+        if(record?.presentDays.includes(absentDate)){
+            return res.status(200).json({
+                success:false,
+                message:"Student Already Marked Absent for this Date",
             })
         }
 
@@ -693,10 +737,26 @@ exports.unMarkStudentAbsent = async(req,res) => {
             })
         }
 
-        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{absentDays:{pop:absentDate}}});
+        const record = await Prisma.studentAttendence.findUnique({where : {id : attendenceRecordId}});
+        if(!record){
+            return res.status(404).json({
+                success:false,
+                message:"Attendence record Not Found",
+            })
+        }
+        if(!record?.absentDays.includes(absentDate)){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+
+        const updatedAbsentDays = await record?.absentDays.filter((day) => day!=absentDate);
+
+        await Prisma.studentAttendence.update({where:{id:attendenceRecordId}, data:{absentDays:updatedAbsentDays}});
         return res.status(200).json({
             success:true,
-            message:"Student Unmarked Absent Successfully",
+            message:"Unmarked Absent Successfully",
         })
 
     }catch(e){

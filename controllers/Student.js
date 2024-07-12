@@ -2,51 +2,117 @@ const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 const {uploadMedia} = require('../utilities/MediaUploader')
 
-exports.CreateOutingApplication = async (req,res) => {
-    try{
-        const {type,from,to,placeOfVisit,purpose} = req.body;
-        const {id} = req.user;
+// exports.CreateOutingApplication = async (req,res) => {
+//     try{
+//         const {type,from,to,placeOfVisit,purpose} = req.body;
+//         const {id} = req.user;
+
+//         console.log(req.body);
+
+//         if(!type || !from || !to || !placeOfVisit || !purpose || !id){
+//             return res.status(404).json({
+//                 success:false,
+//                 message:"Data not found",
+//             })
+//         }
+
+//         const studentDetails = await Prisma.instituteStudent.findUnique({where : {userId : id}});
+//         if(!studentDetails){
+//             return res.status.json(404).json({
+//                 success:false,
+//                 message:"Student Account Not Found",
+//             })
+//         }
+
+//         const pendingStudentApplications = await Prisma.outingApplication.count({where : {instituteStudentId:studentDetails.id, status:"PENDING"}});
+//         if(pendingStudentApplications>0){
+//             return res.status(402).json({
+//                 success:false,
+//                 message:"Already 1 Application is in Pending Status",
+//             })
+//         }
+
+//         await Prisma.outingApplication.create({data : {type,from:new Date(from),to:new Date(to),placeOfVisit,purpose,instituteStudentId:studentDetails.id,hostelBlockId:studentDetails.hostelBlockId,status:"PENDING"}});
+
+//         return res.status(200).json({
+//             success:true,
+//             message:"Created Outing Application Successfully",
+//         })
+        
+//     }catch(e){
+//         console.log(e);
+//         return res.status(400).json({
+//             success : false,
+//             message: "Can't create Outing Application",
+//         })
+//     }
+// }
+
+exports.CreateOutingApplication = async (req, res) => {
+    try {
+        const { type, from, to, placeOfVisit, purpose } = req.body;
+        const { id } = req.user;
 
         console.log(req.body);
 
-        if(!type || !from || !to || !placeOfVisit || !purpose || !id){
+        if (!type || !from || !to || !placeOfVisit || !purpose || !id) {
             return res.status(404).json({
-                success:false,
-                message:"Data not found",
-            })
+                success: false,
+                message: "Data not found",
+            });
+        }
+
+        const fromDate = new Date(from);
+        const toDate = new Date(to);
+        const currentDateUTC = new Date();
+
+        if (fromDate < currentDateUTC || toDate < fromDate || toDate <= currentDateUTC) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid Dates Selected'
+            });
         }
 
         const studentDetails = await Prisma.instituteStudent.findUnique({where : {userId : id}});
         if(!studentDetails){
-            return res.status.json(404).json({
+            return res.status(404).json({
                 success:false,
                 message:"Student Account Not Found",
-            })
+            });
         }
 
-        const pendingStudentApplications = await Prisma.outingApplication.count({where : {instituteStudentId:studentDetails.id, status:"PENDING"}});
-        if(pendingStudentApplications>0){
+        const pendingStudentApplications = await Prisma.outingApplication.count({
+            where : {
+                instituteStudentId: studentDetails.id,
+                status : {
+                    in : ["PENDING","INPROGRESS"]
+                }
+            }
+        });
+        if(pendingStudentApplications > 0){
             return res.status(402).json({
-                success:false,
-                message:"Already 1 Application is in Pending Status",
-            })
+                success: false,
+                message: "There is already one application in pending or in-progress status",
+            });
         }
 
-        await Prisma.outingApplication.create({data : {type,from:new Date(from),to:new Date(to),placeOfVisit,purpose,instituteStudentId:studentDetails.id,hostelBlockId:studentDetails.hostelBlockId,status:"PENDING"}});
+        // await Prisma.outingApplication.create({data : {type,from: fromDate, to: toDate, placeOfVisit, purpose, instituteStudentId: studentDetails.id, hostelBlockId: studentDetails.hostelBlockId, status: "PENDING"}});
 
         return res.status(200).json({
-            success:true,
-            message:"Created Outing Application Successfully",
-        })
-        
-    }catch(e){
+            success: true,
+            message: "Created Outing Application Successfully",
+        });
+
+    } catch (e) {
         console.log(e);
         return res.status(400).json({
-            success : false,
+            success: false,
             message: "Can't create Outing Application",
-        })
+        });
     }
 }
+
+
 
 exports.deletePendingOutingApplication = async(req,res) => {
     try{
