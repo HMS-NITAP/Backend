@@ -38,9 +38,10 @@ enum OutingApplicationType {
 }
 
 enum ApplicationStatus {
+  PENDING
   INPROGRESS
   REJECTED
-  PENDING
+  RETURNED
   COMPLETED
 }
 
@@ -246,8 +247,8 @@ model MessRatingAndReview {
   rating          Int
   review          String                @db.VarChar(255)
   createdAt       DateTime              @default(now()) @db.Timestamp(6)
-  messHallId      Int
-  messHall        MessHall              @relation(fields: [messHallId], references: [id]) 
+  messHallId      Int?
+  messHall        MessHall?             @relation(fields: [messHallId], references: [id]) 
   session         MessSession
   createdById     Int
   createdBy       InstituteStudent      @relation(fields: [createdById], references: [id])    
@@ -264,6 +265,7 @@ model OutingApplication {
   verifiedOn                DateTime?                          @default(dbgenerated("NULL"))
   verifiedById              Int?
   verifiedBy                Official?                          @relation(fields: [verifiedById], references: [id])
+  returnedOn                DateTime?                          @default(dbgenerated("NULL"))
   remarks                   String?                            @db.VarChar(255)
   createdAt                 DateTime                           @default(now()) @db.Timestamp(6)
   instituteStudentId        Int                                
@@ -300,7 +302,7 @@ model StudentAttendence {
 model StudentMessRecords {
   id                              Int                     @id @default(autoincrement())
   studentId                       Int                     @unique
-  student                         InstituteStudent?       @relation(fields: [studentId], references: [id])
+  student                         InstituteStudent        @relation(fields: [studentId], references: [id])
   messHallId                      Int?
   messHall                        MessHall?               @relation(fields: [messHallId], references: [id])
   availed                         Json                    @db.Json

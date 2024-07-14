@@ -72,14 +72,22 @@ exports.sendOTP = async (req,res) => {
 
 exports.signup = async(req,res) => {
     try{
-        const {email,password,confirmPassword,otp} = req.body;
+        const {email,password,confirmPassword,otp,accountType} = req.body;
 
-        if(!email || !password || !confirmPassword || !otp){
+        if(!email || !password || !confirmPassword || !otp || !accountType){
             return res.status(400).json({
                 success:false,
                 message:"Some data Not Found",
             })
         }
+
+        if(accountType !== "ADMIN"){
+            return res.status(404).json({
+                success:false,
+                message:"Only for ADMIN account creation",
+            })
+        }
+
         if(password !== confirmPassword){
             return res.status(400).json({
                 success:false,

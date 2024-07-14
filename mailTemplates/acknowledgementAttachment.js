@@ -152,7 +152,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     </div>
 
                     <div class="grid-item">
-                        <p>Name of the Student: ${name}</p>
+                        <p>Name: ${name}</p>
                         <p>Contact No: ${contact}</p>
                         <p>B.Tech Year: ${year}</p>
                     </div>

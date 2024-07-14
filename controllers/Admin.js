@@ -387,15 +387,15 @@ exports.acceptRegistrationApplication = async(req,res) => {
                 message:"Cot Id Not Found",
             })
         }
-        // ALSO CREATE HOSTEL ATTENDENCE RECORDS
+
         await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
         const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
         await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
+        await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
         
         try{
             let date = new Date();
             date = date.toLocaleDateString();
-            console.log("DAte",date);
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
@@ -414,6 +414,7 @@ exports.acceptRegistrationApplication = async(req,res) => {
 
 
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success:false,
             message:"Unable to Accept Registration Application",

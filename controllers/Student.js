@@ -2,52 +2,6 @@ const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 const {uploadMedia} = require('../utilities/MediaUploader')
 
-// exports.CreateOutingApplication = async (req,res) => {
-//     try{
-//         const {type,from,to,placeOfVisit,purpose} = req.body;
-//         const {id} = req.user;
-
-//         console.log(req.body);
-
-//         if(!type || !from || !to || !placeOfVisit || !purpose || !id){
-//             return res.status(404).json({
-//                 success:false,
-//                 message:"Data not found",
-//             })
-//         }
-
-//         const studentDetails = await Prisma.instituteStudent.findUnique({where : {userId : id}});
-//         if(!studentDetails){
-//             return res.status.json(404).json({
-//                 success:false,
-//                 message:"Student Account Not Found",
-//             })
-//         }
-
-//         const pendingStudentApplications = await Prisma.outingApplication.count({where : {instituteStudentId:studentDetails.id, status:"PENDING"}});
-//         if(pendingStudentApplications>0){
-//             return res.status(402).json({
-//                 success:false,
-//                 message:"Already 1 Application is in Pending Status",
-//             })
-//         }
-
-//         await Prisma.outingApplication.create({data : {type,from:new Date(from),to:new Date(to),placeOfVisit,purpose,instituteStudentId:studentDetails.id,hostelBlockId:studentDetails.hostelBlockId,status:"PENDING"}});
-
-//         return res.status(200).json({
-//             success:true,
-//             message:"Created Outing Application Successfully",
-//         })
-        
-//     }catch(e){
-//         console.log(e);
-//         return res.status(400).json({
-//             success : false,
-//             message: "Can't create Outing Application",
-//         })
-//     }
-// }
-
 exports.CreateOutingApplication = async (req, res) => {
     try {
         const { type, from, to, placeOfVisit, purpose } = req.body;
@@ -66,7 +20,7 @@ exports.CreateOutingApplication = async (req, res) => {
         const toDate = new Date(to);
         const currentDateUTC = new Date();
 
-        if (fromDate < currentDateUTC || toDate < fromDate || toDate <= currentDateUTC) {
+        if (fromDate < currentDateUTC || toDate < fromDate || toDate < currentDateUTC) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid Dates Selected'
@@ -85,7 +39,7 @@ exports.CreateOutingApplication = async (req, res) => {
             where : {
                 instituteStudentId: studentDetails.id,
                 status : {
-                    in : ["PENDING","INPROGRESS"]
+                    in : ["PENDING","INPROGRESS","RETURNED"]
                 }
             }
         });
@@ -96,7 +50,7 @@ exports.CreateOutingApplication = async (req, res) => {
             });
         }
 
-        // await Prisma.outingApplication.create({data : {type,from: fromDate, to: toDate, placeOfVisit, purpose, instituteStudentId: studentDetails.id, hostelBlockId: studentDetails.hostelBlockId, status: "PENDING"}});
+        await Prisma.outingApplication.create({data : {type,from: fromDate, to: toDate, placeOfVisit, purpose, instituteStudentId: studentDetails.id, hostelBlockId: studentDetails.hostelBlockId, status: "PENDING"}});
 
         return res.status(200).json({
             success: true,
@@ -109,50 +63,6 @@ exports.CreateOutingApplication = async (req, res) => {
             success: false,
             message: "Can't create Outing Application",
         });
-    }
-}
-
-
-
-exports.deletePendingOutingApplication = async(req,res) => {
-    try{
-        const {id} = req.user;
-        const {applicationId} = req.body;
-
-        if(!id || !applicationId){
-            return res.status(404).json({
-                success:false,
-                message:"Data is Missing",
-            })
-        }
-
-        const studentDetails = await Prisma.instituteStudent.findUnique({where : {userId:id}});
-        if(!studentDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Student Account Not Found",
-            })
-        }
-
-        const outingApplicationDetails = await Prisma.outingApplication.findFirst({where : {id:applicationId, instituteStudentId:studentDetails.id, status:"PENDING"}});
-        if(!outingApplicationDetails){
-            return res.status(404).json({
-                success:false,
-                message:"No Outing Application Found",
-            })
-        }
-
-        await Prisma.outingApplication.delete({id:outingApplicationDetails.id});
-        return res.status(200).json({
-            success:true,
-            message:"Pending Application Deleted Successfully",
-        })
-
-    }catch(e){
-        return res.status(400).json({
-            success:false,
-            message:"Successfully Deleted Outing Application",
-        })
     }
 }
 
@@ -174,7 +84,7 @@ exports.getStudentAllOutingApplications = async(req,res) => {
             })
         }
 
-        const pendingApplications = await Prisma.outingApplication.findMany({where : {instituteStudentId:studentDetails?.id},orderBy:{createdAt:'desc'}});
+        const pendingApplications = await Prisma.outingApplication.findMany({where : {instituteStudentId:studentDetails?.id},orderBy:{createdAt:'desc'}, include:{verifiedBy:{select:{name:true,designation:true}}}});
         return res.status(200).json({
             success:true,
             message:"Successfully fetched all student Outing Applications",
@@ -190,183 +100,93 @@ exports.getStudentAllOutingApplications = async(req,res) => {
     }
 }
 
-exports.updateOutingApplicationStatus = async(req,res) =>{
+exports.deletePendingOutingApplication = async(req,res) => {
     try{
-        const {applicationId,status} = req.body;
-        const {id , accountType} = req.user;
-
-        if(!applicationId || !status || !id || accountType){
-            return res.status(404).json({
-                success : false,
-                message : "Data is Missing"
-            })
-        }
-
-        if(accountType !== "OFFICIAL"){
-            return res.status(400).json({
-                success : false,
-                message : "Unauthorized user"
-            })
-        }
-
-        // check either the give input status is ACCEPTED or REJECTED
-        if(!["ACCEPTED","REJECTED"].includes(status)){
-            return res.status(400).json({
-                success : false,
-                message : "Invalid status",
-            })
-        }
-
-        const outingApplication = await Prisma.outingApplication.findUnique({where : {id : applicationId}});
-        if(!outingApplication){
-            return res.status(404).json({
-                success : false,
-                message : "Outing Application does not found",
-            })
-        }
-
-        if(outingApplication.status !== "PENDING"){
-            return res.status(400).json({
-                success : false,
-                message : "Pending applications can only updated",
-            })
-        }
-
-        await Prisma.outingApplication.update({where : {id : applicationId} , data : {status : status}});
-
-        return res.status(200).json({
-            success : true,
-            message : "Status has updated successfully",
-        });
-    }
-    catch(e){
-        console.log(e);
-        console.error(e);
-        return res.status(500).json({
-            success : false,
-            message : "Unable to update status in application",
-        });
-    }
-}
-
-exports.markOutingInProgress = async (req,res) => {
-    try{
-        const {applicationId,status} = req.body;
         const {id} = req.user;
-
-        if(!applicationId || !status){
-            return res.status(400).json({
-                success : false,
-                message : "Data is missing",
-            })
-        }
-
-        const studentDetails = await Prisma.instituteStudent.findUnique({where : {id : id}});
-        if(!student){
-            return res.status(400).json({
-                success : false,
-                message : "Unable to find student data"
-            })
-        }
-
-        const outingApplication = await Prisma.outingApplication.findUnique({where : {id : applicationId , instituteStudentId : studentDetails?.id}});
-        if(!outingApplication){
-            return res.status(400).json({
-                success : false,
-                message : "Outing application does not found"
-            })
-        }
-
-        const currentDate = new Date();
-        if(outingApplication.status === "ACCEPTED" && currentDate >= new Date(outingApplication.from)){
-            await Prisma.outingApplication.update({where : {id : applicationId} , data : {status : "IN_PROGRESS"} });
-            return res.status(200).json({
-                success : true,
-                message : "Successfully updated the status to in-progress"
-            })
-        }
-    }
-    catch(e){
-        console.log(e);
-        console.error(e);
-        return res.status(500).json({
-            success : false,
-            message : "Unable to update the status to in-progress"
-        });
-    }
-}
-
-exports.markReturnOuting = async (req,res) => {
-    try{
         const {applicationId} = req.body;
-        const {id} = req.user;
 
-        if(!applicationId || !status || !id){
-            return res.status(400).json({
-                success : false,
-                message : "Data is missing",
+        if(!id || !applicationId){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
             })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findUnique({where : {id : id}});
+        const studentDetails = await Prisma.instituteStudent.findUnique({where : {userId:id}});
         if(!studentDetails){
-            return res.status(400).json({
-                success : false,
-                message : "Student details not found",
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
             })
         }
 
-        const outingApplication = await Prisma.outingApplication.findUnique({where : {id : applicationId , instituteStudentId : studentDetails?.id}});
-        if(!outingApplication){
-            return res.status(400).json({
-                success : false,
-                message : "Outing application does not found"
+        const outingApplicationDetails = await Prisma.outingApplication.findUnique({where : {id:applicationId}});
+        if(!outingApplicationDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Pending Application Not Found",
             })
         }
 
-        if(outingApplication.status !== "IN_PROGRESS"){
-            return res.status(400).json({
-                success : false,
-                message : "Only in-progress status can be updated"
+        if(outingApplicationDetails?.status !== "PENDING"){
+            return res.status(404).json({
+                success:false,
+                message:"Application in not in Pending status",
             })
         }
 
-        const currentDate = new Date.now();
-        const toDate = new Date(outingApplication.to);
-
-        let status;
-        if(currentDate > toDate){
-            // Decrease the outing rating by 0.5
-            status = "COMPLETED WITH DELAY"
-            await Prisma.instituteStudent.update({
-                where :{id: studentDetails?.id},
-                data : {outingRating : studentDetails.outingRating - 0.5
-            }})
-
-            await Prisma.outingApplication.update({where : {id : applicationId} , data : {status : status}});
-
-            return res.status(200).json({
-                success : true,
-                message : "Successfully updated the outing status which is completed with delay",
-            })
-        }
-        else{
-            status = "COMPELETED WITH NO DELAY";
-            await Prisma.outingApplication.update({where : {id : applicationId} , data : {status : status}});
-            return res.status(200).json({
-                success : true,
-                message : "Successfully updated the status which is completed with no delay"
-            })
-        }
-    }
-    catch(e){
-        console.log(e);
-        console.error(e);
-        return res.status(500).json({
-            success : false,
-            message : "Unable to update the return outing status",
+        await Prisma.outingApplication.delete({where : {id : applicationId}});
+        return res.status(200).json({
+            success:true,
+            message:"Pending Application Deleted Successfully",
         })
 
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to delete Outing Application",
+        })
+    }
+}
+
+exports.markReturnOutingApplication = async(req,res) => {
+    try{
+        const {applicationId} = req.body;
+        if(!applicationId){
+            return res.status(404).json({
+                success:false,
+                message:"Application ID not found",
+            })
+        }
+
+        const application = await Prisma.outingApplication?.findUnique({where : {id : applicationId}});
+        if(!application){
+            return res.status(404).json({
+                success:false,
+                message:"Application Not Found",
+            })
+        }
+
+        if(application?.status !== "INPROGRESS"){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+
+        await Prisma.outingApplication.update({where:{id:applicationId}, data:{status:"RETURNED",returnedOn:new Date()}});
+        return res.status(200).json({
+            success:true,
+            message:"Marked Return Successfully",
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to mark return",
+        })
     }
 }
 
@@ -493,10 +313,45 @@ exports.showAllStudentComplaints = async (req,res) => {
     }
 }
 
+exports.fetchAllMessHallsAndStudentGender = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(400).json({
+                success:false,
+                message:"User ID missing",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}, select:{gender:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account not found",
+            })
+        }
+
+        const messHalls = await Prisma.messHall.findMany({select:{hallName:true,id:true,gender:true}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Mess Hall Found",
+            data:{studentDetails,messHalls},
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch Mess Hall"
+        })
+    }
+}
+
 exports.createMessFeedBack = async(req,res) => {
     try{
         const {id} = req.user;
-        const {rating, review, session} = req.body;
+        let {rating, review, session} = req.body;
 
         if(!id || !rating || !review || !session){
             return res.status(404).json({
@@ -513,23 +368,10 @@ exports.createMessFeedBack = async(req,res) => {
             })
         }
 
-        const messHallId = studentDetails?.messHallId;
-        if(!messHallId){
-            return res.status(404).json({
-                success:false,
-                message:"Mess Hall ID Not Found",
-            })
-        }
+        const currentDateUTC = new Date();
+        const currentDateIST = new Date(currentDateUTC.getTime() + (330 * 60 * 1000));
 
-        const messHallDetails = await Prisma.messHall.findUnique({where : {id:messHallId}});
-        if(!messHallDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Mess Hall Not Found",
-            })
-        }
-
-        await Prisma.messRatingAndReview.create({data : {rating:parseInt(rating),review,session,messHallId}});
+        await Prisma.messRatingAndReview.create({data : {rating:parseInt(rating),review,session,createdById:studentDetails?.id,createdAt:currentDateIST}});
         return res.status(200).json({
             success:true,
             message:"Created Mess Rating And Review Successfully",
@@ -588,8 +430,6 @@ exports.getStudentDashboardData = async(req,res) => {
                 message:"Student Data Not Found",
             })
         }
-
-        console.log("STUDENT DETAILS",studentDetails);
 
         return res.status(200).json({
             success:true,
@@ -688,6 +528,119 @@ exports.getStudentAttendance = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"unable to fetch Student Attendance",
+        })
+    }
+}
+
+exports.generateMessSessionReceipt = async (req, res) => {
+    try{
+        const { id } = req.user;
+        const { session, date, messHallName } = req.body;
+
+        if(!id || !session || !date || !messHallName){
+            return res.status(404).json({
+                success: false,
+                message: "Data is Missing",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where: { userId: id },include: { messRecord: true }});
+
+        if(!studentDetails){
+            return res.status(404).json({
+                success: false,
+                message: "Student Account Not Found",
+            });
+        }
+
+        if(studentDetails?.messRecord === null){
+            return res.status(400).json({
+                success: false,
+                message: "Mess Record Not Found",
+            });
+        }
+
+        let availed = studentDetails?.messRecord?.availed;
+        let dateRecord = availed[date] || {};
+
+        if(dateRecord[session]?.completed){
+            return res.status(400).json({
+                success: false,
+                message: `Session ${session} already availed on ${date}`,
+            });
+        }else{
+            dateRecord[session] = {
+                completed: true,
+                messHallName
+            };
+        }
+
+        availed[date] = dateRecord;
+
+        await Prisma.studentMessRecords.update({ where: { id: studentDetails?.messRecord?.id }, data: { availed }});
+
+        return res.status(200).json({
+            success: true,
+            message: "Generated Mess Receipt Successfully",
+        });
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success: false,
+            message: "Unable to generate Mess Receipt",
+        });
+    }
+};
+
+exports.fetchStudentMessReceipts = async(req,res) => {
+    try{
+        const {id} = req.user;
+        if(!id){
+            return res.status(404).json({
+                success:false,
+                message:"User Id Not Found",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}, include : {messRecord : true}});
+        if(!studentDetails){
+            return res.status.json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        if(studentDetails?.messRecord === null){
+            return res.status(400).json({
+                success:false,
+                message:"Mess Record Not Found",
+            })
+        }
+
+        let availed = studentDetails?.messRecord?.availed;
+
+        const now = new Date();
+        const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Kolkata' };
+        const [mm, dd, yyyy] = now.toLocaleDateString('en-CA', options).split('/');
+        const localDate = `${yyyy}-${mm}-${dd}`;
+
+        const entry = availed[localDate] || {};
+
+        const result = Object.entries(entry).map(([key, value]) => ({
+            [key]: value
+          }));
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched records successfully",
+            data : result,
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch mess receipts"
         })
     }
 }

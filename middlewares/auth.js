@@ -72,7 +72,6 @@ exports.isStudent = async (req,res,next) => {
 exports.isOfficial = async (req,res,next) => {
     try{
         const details = await Prisma.user.findUnique({where : {email:req.user.email}});
-        console.log("Details : ",details);
         if(details.accountType !== "OFFICIAL"){
             return res.status(401).json({
                 success:false,

@@ -13,10 +13,13 @@ router.delete("/deleteAnnouncement",authMiddlewares.auth,authMiddlewares.isOffic
 
 // OUTING APPLICATION APIs
 router.get('/getPendingOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getPendingOutingApplicationsByWardenBlock);
-router.get('/getAcceptedOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getAcceptedOutingApplicationsByWardenBlock);
-router.get('/getRejectedOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getRejectedOutingApplicationsByWardenBlock);
-router.put('/approvePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.approvePendingOutingApplication);
+router.get('/getCompletedOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getCompletedOutingApplicationsByWardenBlock);
+router.get('/getInProgressOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getInProgressOutingApplicationsByWardenBlock);
+router.get('/getReturnedOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getReturnedOutingApplicationsByWardenBlock);
+router.put('/acceptPendingOutingApplication',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.acceptPendingOutingApplication);
 router.put('/rejectPendingOutingApplication',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.rejectPendingOutingApplication);
+router.put('/markOutingApplicationCompletedWithoutDelay',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.markOutingApplicationCompletedWithoutDelay);
+router.put('/markOutingApplicationCompletedWithDelay',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.markOutingApplicationCompletedWithDelay);
 
 // HOSTEL COMPLAINT APIs
 router.get('/getAllUnresolvedComplaintsByHostelBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getAllUnresolvedComplaintsByHostelBlock);

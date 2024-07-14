@@ -6,20 +6,21 @@ const {studentController} = require('../controllers');
 
 // OUTING APPILICATION APIs
 router.post('/createOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.CreateOutingApplication);
-router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
 router.get('/getStudentAllOutingApplications',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAllOutingApplications);
-router.put('/updateOutingApplicationStatus',authMiddlewares.auth,authMiddlewares.isOfficial,studentController.updateOutingApplicationStatus);
-router.post('/markOutingInProgress',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markOutingInProgress);
-router.post('/markReturnOuting',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markReturnOuting);
+router.delete('/deletePendingOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deletePendingOutingApplication);
+router.put('/markReturnOutingApplication',authMiddlewares.auth,authMiddlewares.isStudent,studentController.markReturnOutingApplication);
 
 // HOSTEL COMPLAINTS APIs
 router.post('/createHostelComplaint',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createHostelComplaint);
 router.delete('/deleteHostelComplaint',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deleteHostelComplaint);
 router.get('/showAllStudentComplaints',authMiddlewares.auth,authMiddlewares.isStudent,studentController.showAllStudentComplaints);
 
-// MESS FEEDBACK APIs
+// MESS APIs
+router.get('/fetchAllMessHallsAndStudentGender',authMiddlewares.auth,authMiddlewares.isStudent,studentController.fetchAllMessHallsAndStudentGender);
 router.post('/createMessFeedBack',authMiddlewares.auth,authMiddlewares.isStudent,studentController.createMessFeedBack);
 router.delete('/deleteMessFeedBack',authMiddlewares.auth,authMiddlewares.isStudent,studentController.deleteMessFeedBack);
+router.post('/generateMessSessionReceipt',authMiddlewares.auth,authMiddlewares.isStudent,studentController.generateMessSessionReceipt);
+router.get('/fetchStudentMessReceipts',authMiddlewares.auth,authMiddlewares.isStudent,studentController.fetchStudentMessReceipts);
 
 // ATTENDENCE APIs
 router.get('/getStudentAttendance',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAttendance);
