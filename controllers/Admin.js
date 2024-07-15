@@ -20,7 +20,7 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        const uploadedFile = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES,null,50);
+        const uploadedFile = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES);
         if(!uploadedFile){
             return res.status(400).json({
                 success:false,
