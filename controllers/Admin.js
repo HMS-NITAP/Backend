@@ -8,6 +8,7 @@ const fs = require("fs");
 const acknowledgementLetter = require('../mailTemplates/acknowledgementLetter');
 const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttachment');
 const rejectionLetter = require('../mailTemplates/rejectionLetter');
+const freezeLetter = require('../mailTemplates/freezeLetter');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -412,7 +413,6 @@ exports.acceptRegistrationApplication = async(req,res) => {
             message:"Accepted Registration Application",
         })
 
-
     }catch(e){
         console.log(e);
         return res.status(400).json({
@@ -440,7 +440,6 @@ exports.rejectRegistrationApplication = async(req,res) => {
                 message:"User Account Not Found",
             })
         }
-
 
         const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
         if(!studentDetails){
@@ -484,6 +483,182 @@ exports.rejectRegistrationApplication = async(req,res) => {
     }
 }
 
+exports.freezeRegistrationApplication = async(req,res) => {
+    try{
+        let {userId,remarks} = req.body;
+        if(!userId || !remarks){
+            return res.status(404).json({
+                success:false,
+                message:"data Is Missing",
+            })
+        }
+
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "INACTIVE"){
+            return res.status(400).json({
+                success:false,
+                message:"Account Already Active",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Created",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Not Found",
+            })
+        }
+
+        await Prisma.user.update({where : {id:userId}, data : {status:"FREEZED"}});
+
+        try{
+            await SendEmail(userDetails?.email,"Registration Temporarily Suspended | NIT ANDHRA PRADESH",freezeLetter(remarks));
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Application Freezed Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Freeze",
+        })
+    }
+}
+
+exports.confirmFreezedStudentRegistration = async(req,res) => {
+    try{
+        console.log("fdsg");
+        let {userId} = req.body;
+        console.log(req.body);
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"Unable to Confirm Freezed Student registration",
+            })
+        }
+
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "FREEZED"){
+            return res.status(400).json({
+                success:false,
+                message:"Account Not Already Freezeds",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Details Not Found",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Id Not Found",
+            })
+        }
+
+        await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
+        await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
+        await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
+
+        try{
+            let date = new Date();
+            date = date.toLocaleDateString();
+            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            fs.unlinkSync(pdfPath);
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Accepted Registration Application",
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Accept the Application"
+        })
+    }
+}
+
+exports.fetchFreezedApplications = async(_,res) => {
+    try{
+        const studentApplication = await Prisma.user.findMany({
+            where : {
+                accountType : "STUDENT",
+                status : "FREEZED",
+            },
+            include:{
+                instituteStudent:{
+                    include:{
+                        cot : {
+                            include : {room : true}
+                        },
+                        hostelBlock : true,
+                    }
+                }   
+            }
+        })
+
+        return res.status(200).json({
+            success:true,
+            message:"Successfully fetched Applications",
+            data : studentApplication,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Fetched Application Successfully",
+        })
+    }
+}
+
 exports.deleteAnnouncement = async(req,res) => {
     try{
         const {announcementId} = req.body;
@@ -507,6 +682,49 @@ exports.deleteAnnouncement = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Announcement Deletion Failed",
+        })
+    }
+}
+
+exports.getDashboardData = async(_,res) => {
+    try{
+        const result = await Prisma.hostelBlock.findMany({
+            include: {
+              rooms: {
+                include: {
+                  cots: true,
+                },
+              },
+            },
+          });
+          
+          const formattedResult = result.map((block) => {
+            const totalRooms = block.rooms.length;
+            const totalCots = block.rooms.reduce((acc, room) => acc + room.cots.length, 0);
+            const bookedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BOOKED').length, 0);
+            const blockedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BLOCKED').length, 0);
+            const availableCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'AVAILABLE').length, 0);
+          
+            return {
+              blockId: block.id,
+              blockName: block.name,
+              totalRooms,
+              totalCots,
+              bookedCots,
+              blockedCots,
+              availableCots,
+            };
+          });
+
+          return res.status(200).json({
+            success:true,
+            message:"Fetched Data Successfully",
+            data:formattedResult,
+          })
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Data",
         })
     }
 }

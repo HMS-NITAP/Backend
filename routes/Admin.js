@@ -16,6 +16,10 @@ router.get('/fetchOfficialAccounts',authMiddlewares.auth,authMiddlewares.isAdmin
 router.get('/fetchRegistrationApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRegistrationApplications);
 router.put('/acceptRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptRegistrationApplication);
 router.put('/rejectRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectRegistrationApplication);
+router.get('/fetchFreezedApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchFreezedApplications);
+router.put('/freezeRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.freezeRegistrationApplication);
+router.put('/confirmFreezedStudentRegistration',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.confirmFreezedStudentRegistration);
 router.delete('/deleteAnnouncement',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteAnnouncement);
+router.get('/getDashboardData',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.getDashboardData);
 
 module.exports = router;
