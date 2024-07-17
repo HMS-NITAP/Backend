@@ -483,3 +483,30 @@ exports.rejectRegistrationApplication = async(req,res) => {
         })
     }
 }
+
+exports.deleteAnnouncement = async(req,res) => {
+    try{
+        const {announcementId} = req.body;
+        const {id} = req.user;
+
+        if(!announcementId || !id){
+            return res.status(404).json({
+                success:false,
+                message:"Data missing",
+            })
+        }
+
+        await Prisma.announcement.delete({where : {id : announcementId}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Deleted Announcement Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Announcement Deletion Failed",
+        })
+    }
+}

@@ -9,7 +9,6 @@ router.get("/getDashboardData",authMiddlewares.auth,authMiddlewares.isOfficial,o
 
 // ANNOUNCEMENTS APIs
 router.post("/createAnnouncement",authMiddlewares.auth,authMiddlewares.isOfficial,officialController.createAnnouncement);
-router.delete("/deleteAnnouncement",authMiddlewares.auth,authMiddlewares.isOfficial,officialController.deleteAnnouncement);
 
 // OUTING APPLICATION APIs
 router.get('/getPendingOutingApplicationsByWardenBlock',authMiddlewares.auth,authMiddlewares.isOfficial,officialController.getPendingOutingApplicationsByWardenBlock);

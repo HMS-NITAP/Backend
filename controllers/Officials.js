@@ -71,56 +71,6 @@ exports.createAnnouncement = async(req,res) => {
     }
 }
 
-exports.deleteAnnouncement = async(req,res) => {
-    try{
-        const {announcementId} = req.body;
-        const {id} = req.user;
-
-        if(!announcementId || !id){
-            return res.status(404).json({
-                success:false,
-                message:"Data missing",
-            })
-        }
-
-        const officialDetails = await Prisma.official.findFirst({userId:id});
-        if(!officialDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Official Account Not Found",
-            })
-        }
-
-        const announcementDetails = await Prisma.announcement.findUnique({where : {id:announcementId}});
-        if(!announcementDetails){
-            return res.status(404).json({
-                success:false,
-                message:"Announcement Not Found",
-            })
-        }
-
-        if(announcementDetails.createdById !== officialDetails.id){
-            return res.status(403).json({
-                success:false,
-                message:"This announcement is not created by you",
-            })
-        }
-
-        await Prisma.announcement.delete({where : {id : announcementId}});
-
-        return res.status(200).json({
-            success:true,
-            message:"Deleted Announcement Successfully",
-        })
-
-    }catch(e){
-        return res.status(400).json({
-            success:false,
-            message:"Announcement Deletion Failed",
-        })
-    }
-}
-
 exports.getPendingOutingApplicationsByWardenBlock = async(req,res) => {
     try{
         const {id} = req.user;

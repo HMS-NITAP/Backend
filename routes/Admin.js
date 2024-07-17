@@ -16,5 +16,6 @@ router.get('/fetchOfficialAccounts',authMiddlewares.auth,authMiddlewares.isAdmin
 router.get('/fetchRegistrationApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRegistrationApplications);
 router.put('/acceptRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptRegistrationApplication);
 router.put('/rejectRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectRegistrationApplication);
+router.delete('/deleteAnnouncement',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteAnnouncement);
 
 module.exports = router;
