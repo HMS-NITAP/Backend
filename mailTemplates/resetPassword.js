@@ -15,8 +15,7 @@ const resetPassword = (token) => {
                 margin: 0;
                 padding: 0;
             }
-    
-    
+
             .container {
                 max-width: 600px;
                 margin: 0 auto;
@@ -76,7 +75,7 @@ const resetPassword = (token) => {
                 </p>
                 <p>If you did not request this password change, please contact us immediately to secure your account.</p>
             </div>
-                <a href="mailto:info@studynotion.com">info@studynotion.com</a>. We are here to help!
+                <a href="mailto:hmsnitap@gmail.com">hmsnitap@gmail.com</a>. We are here to help!
             </div>
             
         </div>

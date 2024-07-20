@@ -76,7 +76,7 @@ const freezeLetter = (remarks) => {
                 <p>However, your hostel room will be blocked in the meantime, ensuring no other student can register for the same room and cot. To complete your registration and get your chosen room allotted, you must visit the Hostel Office in person.</p>
 			</div>
 			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a
-					href="mailto:info@HMSNITAP.com">info@HMSNITAP.com</a>. We are here to help!</div>
+					href="mailto:hmsnitap@gmail.com">hmsnitap@gmail.com</a>. We are here to help!</div>
 		</div>
 	</body>
 	

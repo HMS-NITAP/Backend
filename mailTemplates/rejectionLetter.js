@@ -73,10 +73,9 @@ const rejectionLetter = (remarks) => {
 				<p>Dear Student,</p>
 				<p>We regret to inform you that your hostel allotment application for the academic year 2024-25 (Odd semester) has been rejected after the review.</p>
                 <p class="highlight">Reason for Rejection: ${remarks}</p>
-				<p>For any further queries, contact hostel office at <a href="mailto:nitap@HMSNITAP.com">nitap@HMSNITAP.com</a> </p>
 			</div>
 			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a
-					href="mailto:info@HMSNITAP.com">info@HMSNITAP.com</a>. We are here to help!</div>
+					href="mailto:hmsnitap@gmail.com">hmsnitap@gmail.com</a>. We are here to help!</div>
 		</div>
 	</body>
 	

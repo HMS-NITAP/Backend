@@ -384,6 +384,13 @@ exports.createStudentAccount = async(req,res) => {
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
 
+        if(!email.endsWith("@student.nitandhra.ac.in")){
+            return res.status(402).json({
+                success:false,
+                message:"Use Institute Email ID for Registration",
+            })
+        }
+
         if(!email || password===null || confirmPassword===null || !name || !regNo || !rollNo || !year || !branch || !gender || pwd===null || !community || !aadhaarNumber || !dob || !bloodGroup || !fatherName || !motherName || phone===null || parentsPhone===null || emergencyPhone===null || !address || !paymentMode || !paymentDate || !amountPaid || hostelBlockId===null || cotId===null){
             return res.status(404).json({
                 success:false,
@@ -437,7 +444,7 @@ exports.createStudentAccount = async(req,res) => {
 
         let uploadedInstituteFeeReceipt = null;
         if(instituteFeeReceipt){
-            uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS)
+            uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS);
             if(!uploadedInstituteFeeReceipt){
                 return res.status(400).json({
                     success:false,
@@ -445,8 +452,9 @@ exports.createStudentAccount = async(req,res) => {
                 })
             }
         }
+        
 
-        const uploadedHostelFeeReceipt = await uploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS)
+        const uploadedHostelFeeReceipt = await uploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
         if(!uploadedHostelFeeReceipt){
             return res.status(400).json({
                 success:false,
@@ -479,7 +487,7 @@ exports.createStudentAccount = async(req,res) => {
             message:"Student Account Registered Successfully",
         })
     }catch(e){
-        console.log("ERROR",e);
+        console.log("ERROR",e);s
         return res.status(401).json({
             success:false,
             message:"Unable to create Student Account",

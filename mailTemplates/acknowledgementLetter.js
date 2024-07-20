@@ -75,7 +75,7 @@ const acknowledgementLetter = () => {
                 <p>Please find the acknowledgement letter attached to this email. Kindly submit this acknowledgement to your Hostel Block Warden to finalize your allotment.</p>
 			</div>
 			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a
-					href="mailto:info@HMSNITAP.com">info@HMSNITAP.com</a>. We are here to help!</div>
+					href="mailto:hmsnitap@gmail.com">hmsnitap@gmail.com</a>. We are here to help!</div>
 		</div>
 	</body>
 	

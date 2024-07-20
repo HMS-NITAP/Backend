@@ -347,6 +347,8 @@ exports.fetchRegistrationApplications = async(_,res) => {
     }
 }
 
+
+
 exports.acceptRegistrationApplication = async(req,res) => {
     try{
         let {userId} = req.body;
@@ -552,7 +554,6 @@ exports.freezeRegistrationApplication = async(req,res) => {
 
 exports.confirmFreezedStudentRegistration = async(req,res) => {
     try{
-        console.log("fdsg");
         let {userId} = req.body;
         console.log(req.body);
         if(!userId){
@@ -626,6 +627,7 @@ exports.confirmFreezedStudentRegistration = async(req,res) => {
         })
     }
 }
+
 
 exports.fetchFreezedApplications = async(_,res) => {
     try{
