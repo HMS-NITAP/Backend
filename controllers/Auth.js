@@ -152,7 +152,7 @@ exports.login = async(req,res) => {
                 message:"User not Registered",
             });
         };
-        if(ifUserExists && ifUserExists?.status === "INACTIVE"){
+        if(ifUserExists && ifUserExists?.status !== "ACTIVE"){
             return res.status(401).json({
                 success:false,
                 message:"Account Not Active",
@@ -391,7 +391,7 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        if(!image || !hostelFeeReceipt || !instituteFeeReceipt){
+        if(!image || !hostelFeeReceipt){
             return res.status(404).json({
                 success:false,
                 message:"File Missing",
@@ -435,12 +435,15 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        const uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS)
-        if(!uploadedInstituteFeeReceipt){
-            return res.status(400).json({
-                success:false,
-                message:"Institite Fee Receipt Upload Failed",
-            })
+        let uploadedInstituteFeeReceipt = null;
+        if(instituteFeeReceipt){
+            uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS)
+            if(!uploadedInstituteFeeReceipt){
+                return res.status(400).json({
+                    success:false,
+                    message:"Institite Fee Receipt Upload Failed",
+                })
+            }
         }
 
         const uploadedHostelFeeReceipt = await uploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS)
@@ -468,7 +471,7 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.secure_url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.secure_url,hostelFeeReceipt:uploadedHostelFeeReceipt?.secure_url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.secure_url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.secure_url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.secure_url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
 
         return res.status(200).json({

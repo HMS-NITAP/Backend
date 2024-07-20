@@ -101,6 +101,7 @@ enum PaymentMode {
   DEBIT_CARD
   NET_BANKING
   NEFT
+  NEFT_Educational_Loan
   UPI
   OTHER
 }
@@ -148,7 +149,7 @@ model InstituteStudent {
   parentsPhone          String                @db.VarChar(255)
   emergencyPhone        String                @db.VarChar(255)
   address               String                @db.VarChar(1000)
-  instituteFeeReceipt   String                @db.VarChar(255)
+  instituteFeeReceipt   String?               @db.VarChar(255)
   hostelFeeReceipt      String                @db.VarChar(255)
   amountPaid            String                @db.VarChar(255)
   paymentDate           String                @db.VarChar(255)
