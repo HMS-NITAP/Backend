@@ -347,192 +347,141 @@ exports.fetchRegistrationApplications = async(_,res) => {
     }
 }
 
-exports.acceptRegistrationApplication = async (req, res) => {
-    const { userId } = req.body;
-
-    if (userId === null) {
-        return res.status(404).json({
-            success: false,
-            message: "User Id Not Found",
-        });
-    }
-
-    try {
-        const userIdParsed = parseInt(userId);
-
-        const userDetails = await Prisma.user.findUnique({ where: { id: userIdParsed } });
-        if (!userDetails) {
+exports.acceptRegistrationApplication = async(req,res) => {
+    try{
+        let {userId} = req.body;
+        if(userId === null){
             return res.status(404).json({
-                success: false,
-                message: "User Details Not Found",
-            });
+                success:false,
+                message:"User Id Not Found",
+            })
         }
 
-        if (userDetails.status !== "INACTIVE") {
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Details Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "INACTIVE"){
             return res.status(400).json({
-                success: false,
-                message: "Account Already Active",
-            });
+                success:false,
+                message:"Account Already Active",
+            })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({ where: { userId: userIdParsed }, include: { hostelBlock: true } });
-        if (!studentDetails) {
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
             return res.status(404).json({
-                success: false,
-                message: "Student Details Not Found",
-            });
+                success:false,
+                message:"Student Details Not Found",
+            })
         }
 
-        if (studentDetails.cotId === null) {
+        if(studentDetails?.cotId === null){
             return res.status(404).json({
-                success: false,
-                message: "Cot Id Not Found",
-            });
+                success:false,
+                message:"Cot Id Not Found",
+            })
         }
 
-        await Prisma.$transaction(async (prisma) => {
-            await prisma.user.update({
-                where: { id: userIdParsed },
-                data: { status: "ACTIVE" }
-            });
-
-            const cotDetails = await prisma.cot.update({
-                where: { id: studentDetails.cotId },
-                data: { status: "BOOKED" },
-                include: { room: true }
-            });
-
-            await prisma.studentAttendence.create({
-                data: { studentId: studentDetails.id, presentDays: [], absentDays: [] }
-            });
-
-            await prisma.studentMessRecords.create({
-                data: { studentId: studentDetails.id, availed: {} }
-            });
-
+        await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
+        await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
+        await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
+        
+        try{
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(
-                acknowledgementAttachment(
-                    date, 
-                    studentDetails.image, 
-                    studentDetails.name, 
-                    studentDetails.phone, 
-                    studentDetails.year, 
-                    studentDetails.rollNo, 
-                    studentDetails.regNo, 
-                    studentDetails.paymentMode, 
-                    studentDetails.amountPaid, 
-                    studentDetails.hostelBlock.name, 
-                    cotDetails.room.roomNumber, 
-                    cotDetails.cotNo
-                ), 
-                `${studentDetails.rollNo}.pdf`
-            );
-
-            await SendEmail(
-                userDetails.email, 
-                "HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH", 
-                acknowledgementLetter(), 
-                pdfPath, 
-                `${studentDetails.rollNo}.pdf`
-            );
-
+            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
-        });
-
-        return res.status(200).json({
-            success: true,
-            message: "Accepted Registration Application",
-        });
-
-    } catch (e) {
-        console.log(e);
-        return res.status(400).json({
-            success: false,
-            message: "Unable to Accept Registration Application",
-        });
-    }
-};
-
-exports.rejectRegistrationApplication = async (req, res) => {
-    const { userId, remarks } = req.body;
-
-    if (!userId || !remarks) {
-        return res.status(404).json({
-            success: false,
-            message: "Data Missing",
-        });
-    }
-
-    try {
-        const userIdParsed = parseInt(userId);
-        const userDetails = await Prisma.user.findUnique({ where: { id: userIdParsed } });
-
-        if (!userDetails) {
-            return res.status(404).json({
-                success: false,
-                message: "User Account Not Found",
-            });
-        }
-
-        const studentDetails = await Prisma.instituteStudent.findFirst({ where: { userId: userIdParsed } });
-
-        if (!studentDetails) {
-            return res.status(404).json({
-                success: false,
-                message: "Student Not Created",
-            });
-        }
-
-        if (studentDetails.cotId === null) {
-            return res.status(404).json({
-                success: false,
-                message: "Cot Not Found",
-            });
-        }
-
-        await Prisma.$transaction(async (prisma) => {
-            await prisma.cot.update({
-                where: { id: studentDetails.cotId },
-                data: { status: "AVAILABLE" },
-            });
-
-            await prisma.instituteStudent.delete({
-                where: { id: studentDetails.id },
-            });
-
-            await prisma.user.delete({
-                where: { id: userIdParsed },
-            });
-        });
-
-        try {
-            await SendEmail(
-                userDetails.email,
-                "HOSTEL ALLOTMENT APPLICATION DECLINED | NIT ANDHRA PRADESH",
-                rejectionLetter(remarks)
-            );
-        } catch (e) {
+        }catch(e){
             console.log(e);
             return res.status(400).json({
-                success: false,
-                message: "Error Sending Rejection Email",
+                success:false,
+                message:"Error Sending Confirmation Email",
             });
-        }
+        };
 
         return res.status(200).json({
-            success: true,
-            message: "Application Rejected",
-        });
-    } catch (e) {
-        console.log("ERROR", e);
+            success:true,
+            message:"Accepted Registration Application",
+        })
+
+    }catch(e){
+        console.log(e);
         return res.status(400).json({
-            success: false,
-            message: "Unable to Reject Registration Application",
-        });
+            success:false,
+            message:"Unable to Accept Registration Application",
+        })
     }
-};
+}
+
+exports.rejectRegistrationApplication = async(req,res) => {
+    try{
+        let {userId,remarks} = req.body;
+        if(!userId || !remarks){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
+        userId = parseInt(userId);
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Created",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Not Found",
+            })
+        }
+
+        await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status:"AVAILABLE"}});
+        await Prisma.instituteStudent.delete({where : {id : studentDetails?.id}});
+        await Prisma.user.delete({where : {id : userId}});
+
+        try{
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT APPLICATION DECLINED | NIT ANDHRA PRADESH",rejectionLetter(remarks));
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Rejection Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Application Rejected",
+        })
+    }catch(e){
+        console.log("ERROR",e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Reject Registration Application"
+        })
+    }
+}
 
 exports.freezeRegistrationApplication = async(req,res) => {
     try{
@@ -601,113 +550,81 @@ exports.freezeRegistrationApplication = async(req,res) => {
     }
 }
 
-exports.confirmFreezedStudentRegistration = async (req, res) => {
-    const { userId } = req.body;
-
-    if (!userId) {
-        return res.status(404).json({
-            success: false,
-            message: "Unable to Confirm Freezed Student registration",
-        });
-    }
-
-    try {
-        const userIdParsed = parseInt(userId);
-
-        const userDetails = await Prisma.user.findUnique({ where: { id: userIdParsed } });
-        if (!userDetails) {
+exports.confirmFreezedStudentRegistration = async(req,res) => {
+    try{
+        let {userId} = req.body;
+        console.log(req.body);
+        if(!userId){
             return res.status(404).json({
-                success: false,
-                message: "User Not Found",
-            });
+                success:false,
+                message:"Unable to Confirm Freezed Student registration",
+            })
         }
 
-        if (userDetails.status !== "FREEZED") {
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "FREEZED"){
             return res.status(400).json({
-                success: false,
-                message: "Account Not Already Freezed",
-            });
+                success:false,
+                message:"Account Not Already Freezeds",
+            })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({ where: { userId: userIdParsed }, include: { hostelBlock: true } });
-        if (!studentDetails) {
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
             return res.status(404).json({
-                success: false,
-                message: "Student Details Not Found",
-            });
+                success:false,
+                message:"Student Details Not Found",
+            })
         }
 
-        if (studentDetails.cotId === null) {
+        if(studentDetails?.cotId === null){
             return res.status(404).json({
-                success: false,
-                message: "Cot Id Not Found",
-            });
+                success:false,
+                message:"Cot Id Not Found",
+            })
         }
 
-        await Prisma.$transaction(async (prisma) => {
-            await prisma.user.update({
-                where: { id: userIdParsed },
-                data: { status: "ACTIVE" },
-            });
+        await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
+        await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
+        await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
 
-            const cotDetails = await prisma.cot.update({
-                where: { id: studentDetails.cotId },
-                data: { status: "BOOKED" },
-                include: { room: true },
-            });
-
-            await prisma.studentAttendence.create({
-                data: { studentId: studentDetails.id, presentDays: [], absentDays: [] },
-            });
-
-            await prisma.studentMessRecords.create({
-                data: { studentId: studentDetails.id, availed: {} },
-            });
-
+        try{
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(
-                acknowledgementAttachment(
-                    date,
-                    studentDetails.image,
-                    studentDetails.name,
-                    studentDetails.phone,
-                    studentDetails.year,
-                    studentDetails.rollNo,
-                    studentDetails.regNo,
-                    studentDetails.paymentMode,
-                    studentDetails.amountPaid,
-                    studentDetails.hostelBlock.name,
-                    cotDetails.room.roomNumber,
-                    cotDetails.cotNo
-                ),
-                `${studentDetails.rollNo}.pdf`
-            );
-
-            await SendEmail(
-                userDetails.email,
-                "HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",
-                acknowledgementLetter(),
-                pdfPath,
-                `${studentDetails.rollNo}.pdf`
-            );
-
+            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
-        });
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
 
         return res.status(200).json({
-            success: true,
-            message: "Accepted Registration Application",
-        });
+            success:true,
+            message:"Accepted Registration Application",
+        })
 
-    } catch (e) {
+    }catch(e){
         console.log(e);
         return res.status(400).json({
-            success: false,
-            message: "Unable to Accept the Application",
-        });
+            success:false,
+            message:"Unable to Accept the Application"
+        })
     }
-};
+}
 
 exports.fetchFreezedApplications = async(_,res) => {
     try{
