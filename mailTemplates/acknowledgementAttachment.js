@@ -1,4 +1,4 @@
-const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,paymentMode,amount,blockName,roomNo,cotNo) => {
+const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,paymentMode,amount,blockName,roomNo,cotNo,gender,floor) => {
     return `<!DOCTYPE html>
 	<html>
         <head>
@@ -160,6 +160,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     <div class="grid-item">
                         <p>Roll No: ${rollNo}</p>
                         <p>Reg No: ${regNo}</p>
+                        <p>Gender: ${gender==="M" ? "Male" : "Female"}</p>
                     </div>
                 </div>
 
@@ -177,6 +178,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
 
                     <div class="grid-item">
                         <p>Cot No : ${cotNo}</p>
+                        <p>Floor No : ${floor}</p>
                     </div>
                 </div>
 
