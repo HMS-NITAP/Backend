@@ -685,45 +685,75 @@ exports.deleteAnnouncement = async(req,res) => {
     }
 }
 
-exports.getDashboardData = async(_,res) => {
-    try{
-        const result = await Prisma.hostelBlock.findMany({
+exports.getDashboardData = async (_, res) => {
+    try {
+      const result = await Prisma.hostelBlock.findMany({
+        include: {
+          rooms: {
             include: {
-              rooms: {
-                include: {
-                  cots: true,
-                },
-              },
+              cots: true,
             },
-          });
-          
-          const formattedResult = result.map((block) => {
-            const totalRooms = block.rooms.length;
-            const totalCots = block.rooms.reduce((acc, room) => acc + room.cots.length, 0);
-            const bookedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BOOKED').length, 0);
-            const blockedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BLOCKED').length, 0);
-            const availableCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'AVAILABLE').length, 0);
-          
-            return {
-              blockId: block.id,
-              blockName: block.name,
-              totalRooms,
-              totalCots,
-              bookedCots,
-              blockedCots,
-              availableCots,
-            };
-          });
-
-          return res.status(200).json({
-            success:true,
-            message:"Fetched Data Successfully",
-            data:formattedResult,
-          })
-    }catch(e){
-        return res.status(400).json({
-            success:false,
-            message:"Unable to Fetch Data",
-        })
+          },
+        },
+      });
+  
+      let overallAvailableCots = 0;
+      let overallBookedCots = 0;
+      let overallBlockedCots = 0;
+  
+      const formattedResult = result.map((block) => {
+        const totalRooms = block.rooms.length;
+        const totalCots = block.rooms.reduce((acc, room) => acc + room.cots.length, 0);
+        const bookedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BOOKED').length, 0);
+        const blockedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BLOCKED').length, 0);
+        const availableCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'AVAILABLE').length, 0);
+  
+        overallAvailableCots += availableCots;
+        overallBookedCots += bookedCots;
+        overallBlockedCots += blockedCots;
+  
+        return {
+          blockId: block.id,
+          blockName: block.name,
+          totalRooms,
+          totalCots,
+          bookedCots,
+          blockedCots,
+          availableCots,
+        };
+      });
+  
+      const activeStudentsCount = await Prisma.user.count({
+        where: {
+          accountType: 'STUDENT',
+          status: 'ACTIVE',
+        },
+      });
+  
+      const inactiveStudentsCount = await Prisma.user.count({
+        where: {
+          accountType: 'STUDENT',
+          status: 'INACTIVE',
+        },
+      });
+  
+      const freezedStudentsCount = await Prisma.user.count({
+        where: {
+          accountType: 'STUDENT',
+          status: 'FREEZED',
+        },
+      });
+  
+      return res.status(200).json({
+        success: true,
+        message: "Fetched Data Successfully",
+        data : {formattedResult,overallAvailableCots,overallBookedCots,overallBlockedCots,activeStudentsCount,inactiveStudentsCount,freezedStudentsCount}
+      });
+    } catch (e) {
+      return res.status(400).json({
+        success: false,
+        message: "Unable to Fetch Data",
+      });
     }
-}
+  };
+  

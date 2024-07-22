@@ -68,7 +68,7 @@ const freezeLetter = (remarks) => {
 		<div class="container">
 			<a href="https://www.nitandhra.ac.in/main/"><img class="logo"
 					src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
-			<div class="message">Hostel Allottment Application Rejected</div>
+			<div class="message">Hostel Allottment Application Freezed</div>
 			<div class="body">
 				<p>Dear Student,</p>
 				<p>Your hostel registration and room allotment process have been temporarily suspended on disciplinary grounds.</p>
