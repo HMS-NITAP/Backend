@@ -3,6 +3,7 @@ const nodemailer = require("nodemailer")
 const SendEmail = async(email,title,body,attachmentPath,attachmentName) => {
     try{
         const transporter = nodemailer.createTransport({
+            pool:true,
             service : process.env.MAIL_HOST,
             auth:{
                 user : process.env.MAIL_USER,
@@ -28,7 +29,7 @@ const SendEmail = async(email,title,body,attachmentPath,attachmentName) => {
 
         let info = await transporter.sendMail(mailOptions);
 
-        // transporter.close();
+        transporter.close();
 
         return info;
     }catch(e){
