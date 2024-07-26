@@ -715,6 +715,7 @@ exports.getDashboardData = async (_, res) => {
         return {
           blockId: block.id,
           blockName: block.name,
+          floorCount : block.floorCount,
           totalRooms,
           totalCots,
           bookedCots,
@@ -755,5 +756,155 @@ exports.getDashboardData = async (_, res) => {
         message: "Unable to Fetch Data",
       });
     }
-  };
+};
+
+exports.sendAcknowledgementLetter = async(req,res) => {
+    try{
+        const {userId} = req.body;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"ID missing",
+            })
+        }
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Details Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "ACTIVE"){
+            return res.status(400).json({
+                success:false,
+                message:"Account Not Already Active",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Details Not Found",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Id Not Found",
+            })
+        }
+
+        const cotDetails = await Prisma.cot.findUnique({where : {id : studentDetails?.cotId}, include:{room : true}});
+        if(!cotDetails || cotDetails?.status!=="BOOKED"){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid Cot Found",
+            })
+        }
+
+        try{
+            // userDetails?.email
+            let date = new Date();
+            date = date.toLocaleDateString();
+            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail("tanneriabhiram@gmail.com","HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            fs.unlinkSync(pdfPath);
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Sent Letter Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Send Acknowledgement Letter",
+        })
+    }
+}
   
+exports.fetchRoomsInHostelBlock = async(req,res) => {
+    try{
+        const {hostelBlockId} = req.body;
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success:false,
+                message:"Hostel Block Id Missing",
+            })
+        }
+
+        const hostelBlockRooms = await Prisma.room.findMany({where : {hostelBlockId}, orderBy: [{ floorNumber: 'asc' }, { roomNumber: 'asc' }]});
+        if(!hostelBlockRooms){
+            return res.status(404).json({
+                success:false,
+                message:"Unable to Fetch Block Rooms",
+            })
+        }
+
+        return res.status(200).json({
+            success:true,
+            message:"Successfully fetched Rooms",
+            data : hostelBlockRooms,
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to fetch Rooms",
+        })
+    }
+}
+
+exports.fetchCotsInRooms = async(req,res) => {
+    try{
+        const {roomId} = req.body;
+        if(!roomId){
+            return res.status(400).json({
+                success:false,
+                message:"Room ID not Found",
+            })
+        }
+
+        const roomDetails = await Prisma.room.findFirst({
+            where: { id: roomId },
+            include: {
+              cots: {
+                orderBy: [{ cotNo: 'asc' }],
+                include: { student: true },
+              },
+            },
+        });
+          
+        if(!roomDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Room Details Not Found",
+            })
+        }
+
+        return res.status(200).json({
+            success:true,
+            message:"Room Details Found Successfully",
+            data : roomDetails,
+        })
+
+    }catch(e){
+        console.log("error",e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Cots",
+        })
+    }
+}

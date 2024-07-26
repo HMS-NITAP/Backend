@@ -21,5 +21,8 @@ router.put('/freezeRegistrationApplication',authMiddlewares.auth,authMiddlewares
 router.put('/confirmFreezedStudentRegistration',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.confirmFreezedStudentRegistration);
 router.delete('/deleteAnnouncement',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteAnnouncement);
 router.get('/getDashboardData',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.getDashboardData);
+router.put('/sendAcknowledgementLetter',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetter);
+router.post('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRoomsInHostelBlock);
+router.post('/fetchCotsInRooms',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsInRooms);
 
 module.exports = router;

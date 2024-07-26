@@ -487,7 +487,7 @@ exports.createStudentAccount = async(req,res) => {
             message:"Student Account Registered Successfully",
         })
     }catch(e){
-        console.log("ERROR",e);s
+        console.log("ERROR",e);
         return res.status(401).json({
             success:false,
             message:"Unable to create Student Account",
