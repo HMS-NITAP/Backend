@@ -163,7 +163,7 @@ model InstituteStudent {
   hostelBlock           HostelBlock           @relation(fields: [hostelBlockId], references: [id])
   hostelComplaints      HostelComplaint[]
   attendence            StudentAttendence?     
-  cotId                 Int                   @unique
+  cotId                 Int?                  @unique
   cot                   Cot?                  @relation(fields: [cotId], references: [id])
   messHallId            Int?                   
   messHall              MessHall?             @relation(fields: [messHallId], references: [id])

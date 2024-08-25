@@ -9,6 +9,7 @@ const acknowledgementLetter = require('../mailTemplates/acknowledgementLetter');
 const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttachment');
 const rejectionLetter = require('../mailTemplates/rejectionLetter');
 const freezeLetter = require('../mailTemplates/freezeLetter');
+const XLSX = require('xlsx');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -802,7 +803,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         if(!cotDetails || cotDetails?.status!=="BOOKED"){
             return res.status(401).json({
                 success:false,
-                message:"Invalid Cot Found",
+                message:"Invalid Details",
             })
         }
 
@@ -811,7 +812,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
             let date = new Date();
             date = date.toLocaleDateString();
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            await SendEmail("tanneriabhiram@gmail.com","HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -905,6 +906,376 @@ exports.fetchCotsInRooms = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to Fetch Cots",
+        })
+    }
+}
+
+exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
+    try{
+        const {idNumber} = req.body;
+        if(!idNumber){
+            return res.status(404).json({
+                success:false,
+                message:"ID is missing",
+            })
+        }
+
+        let studentDetails;
+
+        if(idNumber.length === 6){
+            studentDetails = await Prisma.instituteStudent.findFirst({where : {rollNo : idNumber}, include:{user:true, outingApplication:true, hostelComplaints:true, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
+        }else if(idNumber.length === 7){
+            studentDetails = await Prisma.instituteStudent.findFirst({where : {regNo : idNumber}, include:{user:true, outingApplication:true, hostelComplaints:true, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
+        }else{
+            return res.status(402).json({
+                success:false,
+                message:"Invalid ID number",
+            })
+        }
+
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Found",
+            })
+        }
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Student Data",
+            data : studentDetails,
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"unable to Fetch Student",
+        })
+    } 
+}
+
+exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
+    try{
+        const { hostelBlockId } = req.body;
+
+        if(!hostelBlockId){
+            return res.status(404).json({
+                success: false,
+                message: "Hostel Block ID",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findMany({
+            where: { hostelBlockId: hostelBlockId },
+            include: {
+                user: true,
+                cot: {
+                    include : {
+                        room : true
+                    }
+                },
+            }
+        });
+
+        if(!studentDetails || studentDetails.length === 0){
+            return res.status(404).json({
+                success: false,
+                message: "Unable to fetch student details in the hostel block",
+            });
+        }
+
+        const hostelBlockData = await Prisma.hostelBlock.findUnique({where : {id : hostelBlockId}});
+        if(!hostelBlockData){
+            return res.status(404).json({
+                success:false,
+                message:"Unable to Fetch Data",
+            })
+        }
+
+        const data = studentDetails.map(student => ({
+            Registration_Number: student.regNo,
+            Roll_Number: student.rollNo,
+            Name: student.name,
+            Year: student.year,
+            Branch: student.branch,
+            Gender: student.gender,
+            // PWD: student.pwd,
+            // Community: student.community,
+            Aadhar_Number: student.aadhaarNumber,
+            Date_Of_Birth: student.dob,
+            Blood_Group: student.bloodGroup,
+            Father_Name: student.fatherName,
+            Mother_Name: student.motherName,
+            Phone_Number: student.phone,
+            Parents_Number: student.parentsPhone,
+            Emergency_Number: student.emergencyPhone,
+            Address: student.address,
+            Outing_Rating: student.outingRating,
+            Discipline_Rating: student.disciplineRating,
+            Cot_Number: student.cot?.cotNo,
+            Room_Number: student.cot?.room?.roomNumber,
+            Floor_Number: student.cot?.room?.floorNumber,
+            Email: student.user.email,
+        }));
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(data);
+
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'StudentDetails');
+
+        const fileName = `students_in_HostelBlock_${hostelBlockData?.name}.xlsx`;
+        const filePath = `./${fileName}`;
+        XLSX.writeFile(workbook, filePath);
+
+        const emailBody = `<p>Please find the attached .xlsx file containing the student details ${hostelBlockData?.name} Hall of Residence.</p>`;
+
+        // Change receiver Email to - hmsnitap@gmail.com
+        await SendEmail("tanneriabhi@gmail.com", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
+
+        fs.unlinkSync(filePath);
+
+        return res.status(200).json({
+            success: true,
+            message: "File has been sent to the provided email.",
+        });
+
+    }catch(e){
+        console.error(e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to fetch student details or send email. Please try again later!",
+        });
+    }
+}
+
+exports.deleteStudentAccount = async(req,res) => {
+    try{
+        const {userId} = req.body;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"ID is missing",
+            })
+        }
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}, include:{instituteStudent:true}});
+        if(!userDetails || !userDetails.instituteStudent){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+        try{
+            await Prisma.messRatingAndReview.deleteMany({where : {createdById : userDetails?.instituteStudent?.id}});
+        }catch(e){}
+
+        try{
+            await Prisma.outingApplication.deleteMany({where : {instituteStudentId : userDetails?.instituteStudent?.id}});
+        }catch(e){}
+
+        try{
+            await Prisma.hostelComplaint.deleteMany({where : {instituteStudentId : userDetails?.instituteStudent?.id}});
+        }catch(e){}
+
+        try{
+            await Prisma.studentAttendence.delete({where : {studentId : userDetails?.instituteStudent?.id}});
+        }catch(e){}
+
+        try{
+            await Prisma.studentMessRecords.delete({where : {studentId : userDetails?.instituteStudent?.id}});
+        }catch(e){}
+        
+        try{
+            await Prisma.cot.update({where : {id : userDetails?.instituteStudent?.cotId}, data : {status : "AVAILABLE"}});
+        }catch(e){}
+
+        await Prisma.instituteStudent.delete({where : {id : userDetails?.instituteStudent?.id}});
+        await Prisma.user.delete({where : {id : userDetails?.id}});
+
+        return res.status(200).json({
+            success:true,
+            message:"Deleted Student Account",
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Delete Student Account",
+        })
+    }
+}
+
+exports.changeStudentProfilePhoto = async(req,res) => {
+    try{
+        let {instituteStudentId} = req.body;
+        const {newProfilePic} = req.files;
+        if(!instituteStudentId || !newProfilePic){
+            return res.status(404).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        instituteStudentId = parseInt(instituteStudentId);
+
+        const uploadedProfilePic = await uploadMedia(newProfilePic,process.env.FOLDER_NAME_IMAGES);
+        if(!uploadedProfilePic){
+            return res.status(400).json({
+                success:false,
+                message:"Profile Picture Upload Failed",
+            })
+        }
+
+        await Prisma.instituteStudent.update({where : {id : instituteStudentId}, data:{image:uploadedProfilePic?.secure_url}});
+        return res.status(200).json({
+            success:true,
+            message:"Changed Image Successfully",
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Change Student Profile Photo",
+        })
+    }
+}
+
+exports.fetchCotsForChangeCotOption = async(req,res) => {
+    try{
+        const {userId} = req.body;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"ID is missing",
+            })
+        }
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}, include:{instituteStudent : true}});
+        if(!userDetails || !userDetails?.instituteStudent){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        const studentYear = userDetails?.instituteStudent?.year;
+        const studentGender = userDetails?.instituteStudent?.gender;
+        if(!studentGender || !studentYear){
+            return res.status(403).json({
+                success:false,
+                message:"Data is Missing",
+            })
+        }
+
+        const requiredData = await Prisma.hostelBlock.findMany({
+            where : {
+                gender : studentGender,
+                year : studentYear
+            },
+            include: {
+              rooms: {
+                include: {
+                  cots: {
+                    orderBy: {
+                      cotNo: 'asc',
+                    },
+                  },
+                },
+                orderBy: [
+                  {
+                    floorNumber: 'asc',
+                  },
+                  {
+                    roomNumber: 'asc',
+                  },
+                ],
+              },
+            },
+            orderBy: {
+              id: 'asc',
+            },
+          });
+          
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Data",
+            data:requiredData,
+        })
+                    
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Fetch Rooms",
+        })
+    }
+}
+
+
+
+exports.swapOrExchangeCot = async(req,res) => {
+    try{
+        const {currentCotId,changeToCotId} = req.body;
+        if(!currentCotId || !changeToCotId){
+            return res.status(404).json({
+                success:false,
+                message:"Data Not Found",
+            })
+        }
+
+        const currentCotDetails = await Prisma.cot.findUnique({where : {id : currentCotId}, include : {student:{include:{user:true}}, room:true}});
+        const changeToCotDetails = await Prisma.cot.findUnique({where : {id : changeToCotId}, include : {student:{include:{user:true}}, room:true}});
+
+        if(currentCotDetails?.student?.user?.status !== "ACTIVE"){
+            return res.status(402).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+
+        if(currentCotDetails?.student?.user?.status==="FREEZED" || currentCotDetails?.student?.user?.status==="INACTIVE" || changeToCotDetails?.student?.user?.status==="FREEZED" || changeToCotDetails?.student?.user?.status==="INACTIVE"){
+            return res.status(402).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+
+        if(changeToCotDetails?.status === "BLOCKED" || currentCotDetails?.status === "BLOCKED" || currentCotDetails?.status === "AVAILABLE"){
+            return res.status(402).json({
+                success:false,
+                message:"Cot is in BLOCKED State",
+            })
+        }else if(changeToCotDetails?.status === "AVAILABLE"){
+            await Prisma.cot.update({where : {id : changeToCotId}, data : {status : "BOOKED"}});
+            await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data : {cotId : changeToCotId, hostelBlockId : changeToCotDetails?.room?.hostelBlockId}});
+            await Prisma.cot.update({where : {id : currentCotId}, data : {status : "AVAILABLE"}});
+
+        }else if(changeToCotDetails?.status === "BOOKED"){
+            await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data: {cot: {disconnect: true}}});
+            await Prisma.instituteStudent.update({where : {id : changeToCotDetails?.student?.id}, data : {cotId : currentCotId, hostelBlockId:currentCotDetails?.room?.hostelBlockId}});
+            await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data : {cotId : changeToCotId, hostelBlockId:changeToCotDetails?.room?.hostelBlockId}});
+        
+        }else{
+            return res.status(402).json({
+                success:false,
+                message:"Invalid Operation",
+            })
+        }
+        
+        return res.status(200).json({
+            success:true,
+            message:"Changed Cot Successfully",
+        })
+        
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to change Cot"
         })
     }
 }

@@ -167,14 +167,14 @@ exports.login = async(req,res) => {
                 accountType : ifUserExists.accountType,
             }
 
-            const token = jwt.sign(payload,process.env.JWT_SECRET,{expiresIn:"100h"});
+            const token = jwt.sign(payload,process.env.JWT_SECRET,{expiresIn:"240h"});
             ifUserExists.token = token;
             ifUserExists.password = undefined;
 
             await Prisma.user.update({where:{id:ifUserExists.id}, data:{token:token}});
 
             const options2 = {
-                expires : new Date(Date.now() + 7*24*60*60*1000), // 7days
+                expires : new Date(Date.now() + 10*24*60*60*1000), // 7days
                 httpOnly : true,
             }
 
@@ -191,7 +191,6 @@ exports.login = async(req,res) => {
                 message:"Log In Unsuccessful",
             })
         }
-
     }catch(e){
         console.log(e);
         return res.status(400).json({

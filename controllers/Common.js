@@ -6,6 +6,7 @@ const SendEmail = require('../utilities/MailSender');
 const fs = require("fs");
 const acknowledgementLetter = require('../mailTemplates/acknowledgementLetter');
 const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttachment');
+const {MessMenu} = require("../constant/MessMenu");
 
 exports.getAllAnnouncements = async(_,res) => {
     try{
@@ -194,6 +195,57 @@ exports.tryPDF = async(_,res) => {
             message: "Unable to GENERATE PDF",
         });
     }
+}
+
+exports.fetchCurrentSessionMessMenu = async(req,res) => {
+  try{
+    const {currentDay, currentSession} = req.body;
+    if(!currentDay || !currentSession){
+      return res.status(404).json({
+        success:false,
+        message:"Data is Missing",
+      })
+    }
+
+    const currentSessionItems = MessMenu[currentDay][currentSession];
+    return res.status(200).json({
+      success:true,
+      message:"Current Session Items Fetched Successfully",
+      data : currentSessionItems,
+    })
+
+  }catch(e){
+    console.log(e);
+    return res.status(400).json({
+      success:false,
+      message:"unable to Fetch Data",
+    })
+  }
+}
+
+exports.fetchDetailedMessMenu = async(_,res) => {
+  try{
+    const detailedMessMenu = MessMenu;
+    if(!detailedMessMenu){
+      return res.status(404).json({
+        success:false,
+        mesage:"Unable To Fetch data",
+      })
+    }
+
+    return res.status(200).json({
+      success:true,
+      message:"Fetched Data Successfully",
+      data : detailedMessMenu,
+    })
+    
+  }catch(e){
+    console.log(e);
+    return res.status(400).json({
+      success:false,
+      message:"unable to fetch Mess Menu",
+    })
+  }
 }
 
 // exports.getMessSessionRatingAndReviews = async (req,res) => {

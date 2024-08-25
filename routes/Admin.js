@@ -24,5 +24,11 @@ router.get('/getDashboardData',authMiddlewares.auth,authMiddlewares.isAdmin,admi
 router.put('/sendAcknowledgementLetter',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetter);
 router.post('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRoomsInHostelBlock);
 router.post('/fetchCotsInRooms',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsInRooms);
+router.post('/fetchStudentByRollNoAndRegNo',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentByRollNoAndRegNo);
+router.post('/downloadStudentDetailsInHostelBlockXlsxFile',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.downloadStudentDetailsInHostelBlockXlsxFile);
+router.delete('/deleteStudentAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteStudentAccount);
+router.post('/fetchCotsForChangeCotOption',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsForChangeCotOption);
+router.put('/swapOrExchangeCot',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.swapOrExchangeCot);
+router.put('/changeStudentProfilePhoto',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.changeStudentProfilePhoto);
 
 module.exports = router;

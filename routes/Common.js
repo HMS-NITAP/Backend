@@ -9,6 +9,9 @@ router.get('/fetchCurrentDateRatingsAndReviews',commonController.fetchCurrentDat
 router.get("/fetchHostelBlockNames",commonController.fetchHostelBlockNames);
 router.post("/fetchHostelBlockRooms",commonController.fetchHostelBlockRooms);
 
+router.post("/fetchCurrentSessionMessMenu",commonController.fetchCurrentSessionMessMenu);
+router.get("/fetchDetailedMessMenu",commonController.fetchDetailedMessMenu);
+
 router.get("/tryPDF",commonController.tryPDF);
 
 // router.get("/getMessRatingAndReview",commonController.getMessRatingAndReview);
