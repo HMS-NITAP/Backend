@@ -21,7 +21,7 @@ exports.MessMenu = {
         Breakfast: ["Semiya upma/Ravva upma", "Toasted Bread","Tea","Coffee","Milk","Boiled egg/Banana"],
         Lunch: ["Bhadusha", "Tomata meal maker curry","Masoor dal","Sambar"],
         Snacks: ["Samosa","Tea","Coffee","Milk"],
-        Dinner: ["Kadal Panner(V)", "Chicken Curry(N.V)","Toor dal","Rasam","Guava","Ice cream"]
+        Dinner: ["Kadai Panner(V)", "Chicken Curry(N.V)","Toor dal","Rasam","Guava","Ice cream"]
     },
     Thursday: {
         Breakfast: ["Maggi-Soup","Toasted Bread","Tea","Coffee","Milk","Boiled egg/Banana"],
