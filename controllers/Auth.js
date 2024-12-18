@@ -11,7 +11,6 @@ const {uploadMedia} = require('../utilities/MediaUploader')
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 
-
 exports.sendOTP = async (req,res) => {
     try{
         const {email} = req.body;
