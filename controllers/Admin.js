@@ -1289,21 +1289,26 @@ exports.swapOrExchangeCot = async(req,res) => {
 exports.fetchEvenSemRegistrationApplications = async(_,res) => {
     try{
         const studentApplication = await Prisma.user.findMany({
-            where : {
-                accountType : "STUDENT",
-                status : "ACTIVE1",
+            where: {
+              accountType: "STUDENT",
+              status: "ACTIVE1",
+              instituteStudent: {
+                hostelFeeReceipt2: {
+                  not: null,
+                },
+              },
             },
-            include:{
-                instituteStudent:{
-                    include:{
-                        cot : {
-                            include : {room : true}
-                        },
-                        hostelBlock : true,
-                    }
-                }   
-            }
-        })
+            include: {
+              instituteStudent: {
+                include: {
+                  cot: {
+                    include: { room: true },
+                  },
+                  hostelBlock: true,
+                },
+              },
+            },
+        });  
 
         return res.status(200).json({
             success:true,
@@ -1345,7 +1350,7 @@ exports.acceptEvenSemRegistrationApplication = async(req,res) => {
             })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}, include:{hostelBlock:true}});
         if(!studentDetails){
             return res.status(404).json({
                 success:false,
@@ -1354,11 +1359,12 @@ exports.acceptEvenSemRegistrationApplication = async(req,res) => {
         }
 
         await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        const cotDetails = await Prisma.cot.findUnique({where : {id : studentDetails?.cotId},include:{room : true}});
         
         try{
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+            const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){

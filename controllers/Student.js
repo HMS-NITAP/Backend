@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
-const {uploadMedia} = require('../utilities/MediaUploader')
+const {uploadMedia, UploadMedia} = require('../utilities/MediaUploader')
 
 exports.CreateOutingApplication = async (req, res) => {
     try {
@@ -648,7 +648,16 @@ exports.fetchStudentMessReceipts = async(req,res) => {
 exports.addEvenSemFeeReceipt = async(req,res) => {
     try{
         const {id} = req.user;
+        const {amountPaid2,paymentDate2,paymentMode2} = req.body;
         const { evenSemHostelFeeReceipt } = req.files;
+
+        if(!amountPaid2 || !paymentDate2 || !paymentMode2){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
         if(!evenSemHostelFeeReceipt){
             return res.status(404).json({
                 success:false,
@@ -664,14 +673,14 @@ exports.addEvenSemFeeReceipt = async(req,res) => {
             })
         }
 
-        if(!studentDetails?.hostelFeeReceipt2){
+        if(studentDetails?.hostelFeeReceipt2){
             return res.status(402).json({
                 success:false,
                 message:"Even Sem Hostel Fee Receipt Already Present",
             })
         }
 
-        const uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_IMAGES);
+        const uploadedFile = await UploadMedia(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_IMAGES);
         if(!uploadedFile){
             return res.status(403).json({
                 success:false,
@@ -679,7 +688,7 @@ exports.addEvenSemFeeReceipt = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.update({where:{id : studentDetails?.id}, data:{hostelFeeReceipt2: uploadedFile?.secure_url}});
+        await Prisma.instituteStudent.update({where:{id : studentDetails?.id}, data:{hostelFeeReceipt2: uploadedFile?.secure_url, paymentDate2, paymentMode2, amountPaid2}});
         return res.status(200).json({
             success:true,
             message:"File Submitted Successfully",

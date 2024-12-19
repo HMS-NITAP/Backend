@@ -152,10 +152,13 @@ model InstituteStudent {
   address               String                @db.VarChar(1000)
   instituteFeeReceipt   String?               @db.VarChar(255)
   hostelFeeReceipt      String                @db.VarChar(255)
-  hostelFeeReceipt2     String?               @db.VarChar(255)
   amountPaid            String                @db.VarChar(255)
   paymentDate           String                @db.VarChar(255)
   paymentMode           PaymentMode
+  hostelFeeReceipt2     String?               @db.VarChar(255)
+  amountPaid2           String?               @db.VarChar(255)
+  paymentDate2          String?               @db.VarChar(255)
+  paymentMode2          PaymentMode?
   outingRating          Decimal         
   disciplineRating      Decimal         
   userId                Int                   @unique

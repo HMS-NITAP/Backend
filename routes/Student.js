@@ -24,7 +24,7 @@ router.get('/fetchStudentMessReceipts',authMiddlewares.auth,authMiddlewares.isSt
 
 // ATTENDENCE APIs
 router.get('/getStudentAttendance',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentAttendance);
-router.post('/addEvenSemFeeReceipt',authMiddlewares.auth,authMiddlewares.isStudent,studentController.addEvenSemFeeReceipt);
+router.put('/addEvenSemFeeReceipt',authMiddlewares.auth,authMiddlewares.isStudent,studentController.addEvenSemFeeReceipt);
 
 // DASHBOARD DATA APIs
 router.get('/getStudentDashboardData',authMiddlewares.auth,authMiddlewares.isStudent,studentController.getStudentDashboardData);
