@@ -10,6 +10,9 @@ const acknowledgementAttachment = require('../mailTemplates/acknowledgementAttac
 const rejectionLetter = require('../mailTemplates/rejectionLetter');
 const freezeLetter = require('../mailTemplates/freezeLetter');
 const XLSX = require('xlsx');
+const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAcknowledgementAttachement');
+const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
+const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -728,9 +731,13 @@ exports.getDashboardData = async (_, res) => {
       const activeStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
-          status: 'ACTIVE',
+          OR: [
+            { status: 'ACTIVE' },
+            { status: 'ACTIVE1' },
+          ],
         },
       });
+      
   
       const inactiveStudentsCount = await Prisma.user.count({
         where: {
@@ -1215,8 +1222,6 @@ exports.fetchCotsForChangeCotOption = async(req,res) => {
     }
 }
 
-
-
 exports.swapOrExchangeCot = async(req,res) => {
     try{
         const {currentCotId,changeToCotId} = req.body;
@@ -1230,7 +1235,7 @@ exports.swapOrExchangeCot = async(req,res) => {
         const currentCotDetails = await Prisma.cot.findUnique({where : {id : currentCotId}, include : {student:{include:{user:true}}, room:true}});
         const changeToCotDetails = await Prisma.cot.findUnique({where : {id : changeToCotId}, include : {student:{include:{user:true}}, room:true}});
 
-        if(currentCotDetails?.student?.user?.status !== "ACTIVE"){
+        if(currentCotDetails?.student?.user?.status !== ("ACTIVE" || "ACTIVE1")){
             return res.status(402).json({
                 success:false,
                 message:"Invalid Operation",
@@ -1276,6 +1281,163 @@ exports.swapOrExchangeCot = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to change Cot"
+        })
+    }
+}
+
+
+exports.fetchEvenSemRegistrationApplications = async(_,res) => {
+    try{
+        const studentApplication = await Prisma.user.findMany({
+            where : {
+                accountType : "STUDENT",
+                status : "ACTIVE1",
+            },
+            include:{
+                instituteStudent:{
+                    include:{
+                        cot : {
+                            include : {room : true}
+                        },
+                        hostelBlock : true,
+                    }
+                }   
+            }
+        })
+
+        return res.status(200).json({
+            success:true,
+            message:"Fetched Applications Successfully",
+            data:studentApplication,
+        })
+    }catch(e){
+        return res.status(403).json({
+            success:false,
+            message:"Unable to fetch Applications",
+        })
+    }
+}
+
+exports.acceptEvenSemRegistrationApplication = async(req,res) => {
+    try{
+        let {userId} = req.body;
+        if(userId === null){
+            return res.status(404).json({
+                success:false,
+                message:"User Id Not Found",
+            })
+        }
+
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Details Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "ACTIVE1"){
+            return res.status(400).json({
+                success:false,
+                message:"INVALID OPERATION",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Details Not Found",
+            })
+        }
+
+        await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
+        
+        try{
+            let date = new Date();
+            date = date.toLocaleDateString();
+            const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            fs.unlinkSync(pdfPath);
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Accepted Registration Application",
+        })
+
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Accept Registration Application",
+        })
+    }
+}
+
+exports.rejectEvenSemRegistrationApplication = async(req,res) => {
+    try{
+        let {userId,remarks} = req.body;
+        if(!userId || !remarks){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+
+        userId = parseInt(userId);
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "ACTIVE1"){
+            return res.status(400).json({
+                success:false,
+                message:"INVALID OPERATION",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Created",
+            })
+        }
+
+        await Prisma.instituteStudent.update({where:{id:studentDetails?.id}, data:{hostelFeeReceipt2:null}});
+
+        try{
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT APPLICATION DECLINED | NIT ANDHRA PRADESH",evenSemRejectionLetter(remarks));
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Rejection Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Application Rejected",
+        })
+    }catch(e){
+        console.log("ERROR",e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Reject Registration Application"
         })
     }
 }

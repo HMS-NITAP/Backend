@@ -422,7 +422,7 @@ exports.getStudentDashboardData = async(req,res) => {
             })
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,messHall:true,cot:{include:{room:true}}}});
+        const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,messHall:true,cot:{include:{room:true}},user:{select:{status:true}}}});
         
         if(!studentDetails){
             return res.status(404).json({
@@ -464,7 +464,6 @@ exports.editProfile = async(req,res) => {
                 message:"Data is Missing",
             })
         }
-        console.log("Data : ",req.body);
 
         let newDOB = new Date(req.body.dob);
 
@@ -641,6 +640,55 @@ exports.fetchStudentMessReceipts = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to fetch mess receipts"
+        })
+    }
+}
+
+
+exports.addEvenSemFeeReceipt = async(req,res) => {
+    try{
+        const {id} = req.user;
+        const { evenSemHostelFeeReceipt } = req.files;
+        if(!evenSemHostelFeeReceipt){
+            return res.status(404).json({
+                success:false,
+                message:"Unable to Find Fee Receipt"
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId : id}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Account Not Found",
+            })
+        }
+
+        if(!studentDetails?.hostelFeeReceipt2){
+            return res.status(402).json({
+                success:false,
+                message:"Even Sem Hostel Fee Receipt Already Present",
+            })
+        }
+
+        const uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_IMAGES);
+        if(!uploadedFile){
+            return res.status(403).json({
+                success:false,
+                message:"File Upload Failed",
+            })
+        }
+
+        await Prisma.instituteStudent.update({where:{id : studentDetails?.id}, data:{hostelFeeReceipt2: uploadedFile?.secure_url}});
+        return res.status(200).json({
+            success:true,
+            message:"File Submitted Successfully",
+        })
+    }catch(e){
+        console.log(e);
+        return res.status(400).json({
+            success:false,
+            message:"Unable to complete Registration"
         })
     }
 }

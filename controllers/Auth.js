@@ -151,7 +151,7 @@ exports.login = async(req,res) => {
                 message:"User not Registered",
             });
         };
-        if(ifUserExists && ifUserExists?.status !== "ACTIVE"){
+        if(ifUserExists && ifUserExists?.status !== "ACTIVE" && ifUserExists?.status !== "ACTIVE1"){
             return res.status(401).json({
                 success:false,
                 message:"Account Not Active",

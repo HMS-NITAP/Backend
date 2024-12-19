@@ -11,6 +11,7 @@ enum AccountStatus {
   ACTIVE
   INACTIVE
   FREEZED
+  ACTIVE1
 }
 
 enum AccountType {
@@ -151,6 +152,7 @@ model InstituteStudent {
   address               String                @db.VarChar(1000)
   instituteFeeReceipt   String?               @db.VarChar(255)
   hostelFeeReceipt      String                @db.VarChar(255)
+  hostelFeeReceipt2     String?               @db.VarChar(255)
   amountPaid            String                @db.VarChar(255)
   paymentDate           String                @db.VarChar(255)
   paymentMode           PaymentMode

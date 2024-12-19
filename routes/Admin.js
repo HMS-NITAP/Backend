@@ -30,5 +30,8 @@ router.delete('/deleteStudentAccount',authMiddlewares.auth,authMiddlewares.isAdm
 router.post('/fetchCotsForChangeCotOption',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsForChangeCotOption);
 router.put('/swapOrExchangeCot',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.swapOrExchangeCot);
 router.put('/changeStudentProfilePhoto',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.changeStudentProfilePhoto);
+router.get('/fetchEvenSemRegistrationApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchEvenSemRegistrationApplications);
+router.put('/acceptEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptEvenSemRegistrationApplication);
+router.put('/rejectEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectEvenSemRegistrationApplication);
 
 module.exports = router;
