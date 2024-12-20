@@ -1,4 +1,4 @@
-const {uploadMedia} = require('../utilities/MediaUploader')
+const {UploadMedia} = require('../utilities/MediaUploader')
 
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
@@ -46,7 +46,7 @@ exports.createAnnouncement = async(req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_DOCS);
+            uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_DOCS);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
