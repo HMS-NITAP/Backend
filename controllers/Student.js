@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
-const {uploadMedia, UploadMedia} = require('../utilities/MediaUploader')
+const {UploadMedia} = require('../utilities/MediaUploader')
 
 exports.CreateOutingApplication = async (req, res) => {
     try {
@@ -215,7 +215,7 @@ exports.createHostelComplaint = async (req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await uploadMedia(file,process.env.FOLDER_NAME_IMAGES);
+            uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_IMAGES);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
