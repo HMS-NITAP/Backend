@@ -68,7 +68,7 @@ const resetPassword = (token) => {
         <div class="container">
         <a href="https://www.nitandhra.ac.in/main/"><img class="logo"
             src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
-            <div class="message">Reset Password Link</div>
+            <div class="message">Reset Password Token</div>
             <div class="body">
                 <div class="heading">Copy and paste the below token to proceed with resetting of your account password.</div>
                 <p class="token">${token}</p>

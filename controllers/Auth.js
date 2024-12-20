@@ -261,7 +261,7 @@ exports.resetPasswordToken = async(req,res) => {
               resetPasswordExpiresIn: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
-        await SendEmail(email,"Reset Password Link | NIT Andhra Pradesh HMS",resetPassword(token));
+        await SendEmail(email,"Reset Password Token | NIT Andhra Pradesh HMS",resetPassword(token));
         return res.status(200).json({
             success:true,
             message:"Reset Password Token Mail Sent Successfully",
