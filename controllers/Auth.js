@@ -6,7 +6,7 @@ const emailVerification = require('../mailTemplates/emailVerification');
 // const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
 const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
-const {uploadMedia} = require('../utilities/MediaUploader')
+const {UploadMedia} = require('../utilities/MediaUploader')
 
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
@@ -432,7 +432,7 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        const uploadedImage = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        const uploadedImage = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
         if(!uploadedImage){
             return res.status(400).json({
                 success:false,
@@ -442,7 +442,7 @@ exports.createStudentAccount = async(req,res) => {
 
         let uploadedInstituteFeeReceipt = null;
         if(instituteFeeReceipt){
-            uploadedInstituteFeeReceipt = await uploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS);
+            uploadedInstituteFeeReceipt = await UploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS);
             if(!uploadedInstituteFeeReceipt){
                 return res.status(400).json({
                     success:false,
@@ -452,7 +452,7 @@ exports.createStudentAccount = async(req,res) => {
         }
         
 
-        const uploadedHostelFeeReceipt = await uploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
+        const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
         if(!uploadedHostelFeeReceipt){
             return res.status(400).json({
                 success:false,
