@@ -930,9 +930,9 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
         let studentDetails;
 
         if(idNumber.length === 6){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {rollNo : idNumber}, include:{user:true, outingApplication:true, hostelComplaints:true, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
+            studentDetails = await Prisma.instituteStudent.findFirst({where : {rollNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
         }else if(idNumber.length === 7){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {regNo : idNumber}, include:{user:true, outingApplication:true, hostelComplaints:true, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
+            studentDetails = await Prisma.instituteStudent.findFirst({where : {regNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
         }else{
             return res.status(402).json({
                 success:false,
@@ -1285,7 +1285,6 @@ exports.swapOrExchangeCot = async(req,res) => {
     }
 }
 
-
 exports.fetchEvenSemRegistrationApplications = async(_,res) => {
     try{
         const studentApplication = await Prisma.user.findMany({
@@ -1444,6 +1443,81 @@ exports.rejectEvenSemRegistrationApplication = async(req,res) => {
         return res.status(400).json({
             success:false,
             message:"Unable to Reject Registration Application"
+        })
+    }
+}
+
+exports.sendAcknowledgementLetterEvenSem = async(req,res) => {
+    try{
+        const {userId} = req.body;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"ID missing",
+            })
+        }
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Details Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "ACTIVE"){
+            return res.status(400).json({
+                success:false,
+                message:"Account Not Already Active",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId},include:{hostelBlock:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Details Not Found",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Id Not Found",
+            })
+        }
+
+        const cotDetails = await Prisma.cot.findUnique({where : {id : studentDetails?.cotId}, include:{room : true}});
+        if(!cotDetails || cotDetails?.status!=="BOOKED"){
+            return res.status(401).json({
+                success:false,
+                message:"Invalid Details",
+            })
+        }
+
+        try{
+            let date = new Date();
+            date = date.toLocaleDateString();
+            const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+            await SendEmail("tanneriabhiram@gmail.com","HOSTEL ALLOTMENT CONFIRMATION EVEN SEM | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            fs.unlinkSync(pdfPath);
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Confirmation Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Sent Letter Successfully",
+        })
+
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Unable to Send Acknowledgement Letter",
         })
     }
 }

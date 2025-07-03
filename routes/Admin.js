@@ -33,5 +33,6 @@ router.put('/changeStudentProfilePhoto',authMiddlewares.auth,authMiddlewares.isA
 router.get('/fetchEvenSemRegistrationApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchEvenSemRegistrationApplications);
 router.put('/acceptEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptEvenSemRegistrationApplication);
 router.put('/rejectEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectEvenSemRegistrationApplication);
+router.put('/sendAcknowledgementLetterEvenSem',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetterEvenSem);
 
 module.exports = router;
