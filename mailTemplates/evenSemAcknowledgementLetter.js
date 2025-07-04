@@ -71,7 +71,7 @@ const evenSemAcknowledgementLetter = () => {
 			<div class="message">Hostel Allottment Confirmed</div>
 			<div class="body">
 				<p>Dear Student,</p>
-				<p>We are pleased to inform you that your hostel registration for the Academic Year 2024-2025 (Even Semester) has been confirmed. Your details have been verified.</p>
+				<p>We are pleased to inform you that your hostel registration for the Even Semester has been confirmed. Your details have been verified.</p>
                 <p>Please find the acknowledgement letter attached to this email. Kindly submit this acknowledgement to your Hostel Block Warden to finalize your allotment.</p>
 			</div>
 			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a

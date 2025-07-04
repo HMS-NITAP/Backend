@@ -71,7 +71,7 @@ const acknowledgementLetter = () => {
 			<div class="message">Hostel Allottment Confirmed</div>
 			<div class="body">
 				<p>Dear Student,</p>
-				<p>We are pleased to inform you that your hostel registration for the Academic Year 2024-2025 (Odd Semester) has been confirmed. Your details have been verified, and a room has been allotted as per your choice.</p>
+				<p>We are pleased to inform you that your hostel registration for the Odd Semester has been confirmed. Your details have been verified, and a room has been allotted as per your choice.</p>
                 <p>Please find the acknowledgement letter attached to this email. Kindly submit this acknowledgement to your Hostel Block Warden to finalize your allotment.</p>
 			</div>
 			<div class="support">If you have any questions or need assistance, please feel free to reach out to us at <a
