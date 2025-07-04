@@ -787,7 +787,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         if(userDetails?.status !== "ACTIVE"){
             return res.status(400).json({
                 success:false,
-                message:"Account Not Already Active",
+                message:"Account Not Active",
             })
         }
 
@@ -815,12 +815,20 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         }
 
         try{
-            // userDetails?.email
+            console.log("STUS", studentDetails);
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
-            fs.unlinkSync(pdfPath);
+            if(studentDetails?.hostelFeeReceipt2 === null){
+                // ODD SEM
+                const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+                await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+                fs.unlinkSync(pdfPath);
+            }else{
+                // EVEN SEM
+                const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+                await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+                fs.unlinkSync(pdfPath);
+            }
         }catch(e){
             console.log(e);
             return res.status(400).json({
