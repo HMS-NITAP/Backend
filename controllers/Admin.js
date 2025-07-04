@@ -1088,6 +1088,13 @@ exports.deleteStudentAccount = async(req,res) => {
             })
         }
 
+        if(userDetails?.status === "FREEZED" || userDetails?.status === "INACTIVE"){
+            return res.status(404).json({
+                success:false,
+                message:"Can't Delete this account",
+            })
+        }
+
         try{
             await Prisma.messRatingAndReview.deleteMany({where : {createdById : userDetails?.instituteStudent?.id}});
         }catch(e){}
@@ -1166,13 +1173,14 @@ exports.changeStudentProfilePhoto = async(req,res) => {
 
 exports.fetchCotsForChangeCotOption = async(req,res) => {
     try{
-        const {userId} = req.body;
+        let {userId} = req.body;
         if(!userId){
             return res.status(404).json({
                 success:false,
                 message:"ID is missing",
             })
         }
+        userId = parseInt(userId);
 
         const userDetails = await Prisma.user.findUnique({where : {id : userId}, include:{instituteStudent : true}});
         if(!userDetails || !userDetails?.instituteStudent){
@@ -1238,13 +1246,15 @@ exports.fetchCotsForChangeCotOption = async(req,res) => {
 
 exports.swapOrExchangeCot = async(req,res) => {
     try{
-        const {currentCotId,changeToCotId} = req.body;
+        let {currentCotId,changeToCotId} = req.body;
         if(!currentCotId || !changeToCotId){
             return res.status(404).json({
                 success:false,
                 message:"Data Not Found",
             })
         }
+
+        currentCotId = parseInt(currentCotId);
 
         const currentCotDetails = await Prisma.cot.findUnique({where : {id : currentCotId}, include : {student:{include:{user:true}}, room:true}});
         const changeToCotDetails = await Prisma.cot.findUnique({where : {id : changeToCotId}, include : {student:{include:{user:true}}, room:true}});
