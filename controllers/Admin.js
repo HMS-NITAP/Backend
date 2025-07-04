@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
-const {uploadMedia} = require('../utilities/MediaUploader');
+const {UploadMedia} = require('../utilities/MediaUploader');
 const bcrypt = require("bcrypt")
 const PdfGenerator = require("../utilities/PdfGenerator");
 const SendEmail = require('../utilities/MailSender');
@@ -25,7 +25,7 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        const uploadedFile = await uploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        const uploadedFile = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
         if(!uploadedFile){
             return res.status(400).json({
                 success:false,
@@ -1134,7 +1134,7 @@ exports.changeStudentProfilePhoto = async(req,res) => {
 
         instituteStudentId = parseInt(instituteStudentId);
 
-        const uploadedProfilePic = await uploadMedia(newProfilePic,process.env.FOLDER_NAME_IMAGES);
+        const uploadedProfilePic = await UploadMedia(newProfilePic,process.env.FOLDER_NAME_IMAGES);
         if(!uploadedProfilePic){
             return res.status(400).json({
                 success:false,
