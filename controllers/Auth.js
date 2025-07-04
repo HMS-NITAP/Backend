@@ -57,7 +57,6 @@ exports.sendOTP = async (req,res) => {
 
         return res.status(200).json({
             success:true,
-            OTP:otp, // REMOVE THIS LINE BEFORE DEPLOYMENT
             message:"OTP Successfully Sent",
         })
     }catch(e){
