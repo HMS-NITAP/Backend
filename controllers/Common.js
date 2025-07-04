@@ -115,8 +115,11 @@ exports.fetchCurrentDateRatingsAndReviews = async(_,res) => {
         const startOfDayIST = new Date(startOfDayISTString);
         const endOfDayIST = new Date(endOfDayISTString);
 
-        const startOfDayISTWithOffset = new Date(startOfDayIST.getTime() + 330 * 60 * 1000);
-        const endOfDayISTWithOffset = new Date(endOfDayIST.getTime() + 330 * 60 * 1000);
+        // const startOfDayISTWithOffset = new Date(startOfDayIST.getTime() + 330 * 60 * 1000);
+        // const endOfDayISTWithOffset = new Date(endOfDayIST.getTime() + 330 * 60 * 1000);
+
+        const startOfDayISTWithOffset = startOfDayIST;
+        const endOfDayISTWithOffset = endOfDayIST;
 
         const ratingsGroupedBySession = await Prisma.messRatingAndReview.groupBy({
             by: ['session'],
