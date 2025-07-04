@@ -985,10 +985,17 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
             }
         });
 
-        if(!studentDetails || studentDetails.length === 0){
+        if(!studentDetails){
             return res.status(404).json({
                 success: false,
                 message: "Unable to fetch student details in the hostel block",
+            });
+        }
+
+        if(studentDetails?.length === 0){
+            return res.status(200).json({
+                success: true,
+                message: "No Students present in this block",
             });
         }
 
@@ -1007,8 +1014,8 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
             Year: student.year,
             Branch: student.branch,
             Gender: student.gender,
-            // PWD: student.pwd,
-            // Community: student.community,
+            PWD: student.pwd,
+            Community: student.community,
             Aadhar_Number: student.aadhaarNumber,
             Date_Of_Birth: student.dob,
             Blood_Group: student.bloodGroup,
@@ -1018,8 +1025,8 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
             Parents_Number: student.parentsPhone,
             Emergency_Number: student.emergencyPhone,
             Address: student.address,
-            Outing_Rating: student.outingRating,
-            Discipline_Rating: student.disciplineRating,
+            Outing_Rating: String(student.outingRating),
+            Discipline_Rating: String(student.disciplineRating),
             Cot_Number: student.cot?.cotNo,
             Room_Number: student.cot?.room?.roomNumber,
             Floor_Number: student.cot?.room?.floorNumber,
@@ -1037,8 +1044,7 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
 
         const emailBody = `<p>Please find the attached .xlsx file containing the student details ${hostelBlockData?.name} Hall of Residence.</p>`;
 
-        // Change receiver Email to - hmsnitap@gmail.com
-        await SendEmail("tanneriabhi@gmail.com", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
+        await SendEmail("hmsnitap@gmail.com", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
 
         fs.unlinkSync(filePath);
 
