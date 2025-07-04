@@ -381,7 +381,8 @@ exports.createStudentAccount = async(req,res) => {
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
 
-        if(!email.endsWith("@student.nitandhra.ac.in")){
+        // For 1st year Students
+        if(!email.endsWith("@student.nitandhra.ac.in") && year !== "1"){
             return res.status(402).json({
                 success:false,
                 message:"Use Institute Email ID for Registration",
