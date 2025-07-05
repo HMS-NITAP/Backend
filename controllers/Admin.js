@@ -1646,7 +1646,40 @@ exports.startEvenSemRegistration = async(_, res) => {
 
 exports.viewPendingComplaints = async(_, res) => {
     try{
-        const pendingComplaints = await Prisma.hostelComplaint.findMany({where : {status : "UNRESOLVED"}, orderBy: {createdAt : 'asc'}, include: {instituteStudent: {include: {hostelBlock: true, cot: {include: {room: true}}}}}});
+        const pendingComplaints = await Prisma.hostelComplaint.findMany({
+                                                    where: {
+                                                        status: "UNRESOLVED",
+                                                    },
+                                                    orderBy: {
+                                                        createdAt: 'asc',
+                                                    },
+                                                    select: {
+                                                        createdAt: true,
+                                                        category: true,
+                                                        about: true,
+                                                        fileUrl: true,
+                                                        instituteStudent: {
+                                                        select: {
+                                                            name: true,
+                                                            cot: {
+                                                            select: {
+                                                                cotNo: true,
+                                                                room: {
+                                                                select: {
+                                                                    roomNumber: true,
+                                                                },
+                                                                },
+                                                            },
+                                                            },
+                                                            hostelBlock: {
+                                                            select: {
+                                                                name: true,
+                                                            },
+                                                            },
+                                                        },
+                                                        },
+                                                    },
+                                                    });
 
         return res.status(200).json({
             success: true,
