@@ -1545,3 +1545,34 @@ exports.sendAcknowledgementLetterEvenSem = async(req,res) => {
         })
     }
 }
+
+exports.startEvenSemRegistration = async(_, res) => {
+    try{
+        const freezedStudentAccount = await Prisma.user.findFirst({where: {status: "FREEZED"}});
+        if(freezedStudentAccount){
+            return res.status(400).json({
+                success: false,
+                message: "Delete Freezed students before starting even sem registration",
+            })
+        }
+
+        const inactiveStudentAccount = await Prisma.user.findFirst({where: {status: "INACTIVE"}});
+        if(inactiveStudentAccount){
+            return res.status(400).json({
+                success: false,
+                message: "Delete pending odd semester registrations before starting even sem registration",
+            })
+        }
+
+        await Prisma.user.updateMany({where : {accountType : "STUDENT"}, data : {status : "ACTIVE1"}});
+        return res.status(200).json({
+            success: true,
+            message: "Started Even Sem Registration Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Something went wrong",
+        })
+    }
+}

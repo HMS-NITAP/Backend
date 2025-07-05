@@ -34,5 +34,6 @@ router.get('/fetchEvenSemRegistrationApplications',authMiddlewares.auth,authMidd
 router.put('/acceptEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptEvenSemRegistrationApplication);
 router.put('/rejectEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectEvenSemRegistrationApplication);
 router.put('/sendAcknowledgementLetterEvenSem',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetterEvenSem);
+router.put('/startEvenSemRegistration', authMiddlewares.auth, authMiddlewares.isAdmin, adminController.startEvenSemRegistration);
 
 module.exports = router;
