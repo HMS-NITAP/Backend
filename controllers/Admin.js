@@ -630,6 +630,73 @@ exports.confirmFreezedStudentRegistration = async(req,res) => {
     }
 }
 
+exports.deleteFreezedStudentApplication = async(req, res) => {
+    try{
+        let {userId,remarks} = req.body;
+        if(!userId || !remarks){
+            return res.status(404).json({
+                success:false,
+                message:"Data Missing",
+            })
+        }
+        userId = parseInt(userId);
+
+        const userDetails = await Prisma.user.findUnique({where : {id : userId}});
+        if(!userDetails){
+            return res.status(404).json({
+                success:false,
+                message:"User Account Not Found",
+            })
+        }
+
+        if(userDetails?.status !== "FREEZED"){
+            return res.status(402).json({
+                success:false,
+                message:"Account is not in Freezed state",
+            })
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success:false,
+                message:"Student Not Created",
+            })
+        }
+
+        if(studentDetails?.cotId === null){
+            return res.status(404).json({
+                success:false,
+                message:"Cot Not Found",
+            })
+        }
+
+        await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status:"AVAILABLE"}});
+        await Prisma.instituteStudent.delete({where : {id : studentDetails?.id}});
+        await Prisma.user.delete({where : {id : userId}});
+
+        try{
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT APPLICATION DECLINED | NIT ANDHRA PRADESH",rejectionLetter(remarks));
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Sending Rejection Email",
+            });
+        };
+
+        return res.status(200).json({
+            success:true,
+            message:"Application Rejected",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Unable to delete application",
+        })
+    }
+}
+
 exports.fetchFreezedApplications = async(_,res) => {
     try{
         const studentApplication = await Prisma.user.findMany({
@@ -1568,6 +1635,23 @@ exports.startEvenSemRegistration = async(_, res) => {
         return res.status(200).json({
             success: true,
             message: "Started Even Sem Registration Successfully",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Something went wrong",
+        })
+    }
+}
+
+exports.viewPendingComplaints = async(_, res) => {
+    try{
+        const pendingComplaints = await Prisma.hostelComplaint.findMany({where : {status : "UNRESOLVED"}, orderBy: {createdAt : 'asc'}, include: {instituteStudent: {include: {hostelBlock: true, cot: {include: {room: true}}}}}});
+
+        return res.status(200).json({
+            success: true,
+            message: "Successfully fetched data",
+            data: pendingComplaints,
         })
     }catch(e){
         return res.status(400).json({

@@ -19,6 +19,7 @@ router.put('/rejectRegistrationApplication',authMiddlewares.auth,authMiddlewares
 router.get('/fetchFreezedApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchFreezedApplications);
 router.put('/freezeRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.freezeRegistrationApplication);
 router.put('/confirmFreezedStudentRegistration',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.confirmFreezedStudentRegistration);
+router.put('/deleteFreezedStudentApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteFreezedStudentApplication);
 router.delete('/deleteAnnouncement',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteAnnouncement);
 router.get('/getDashboardData',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.getDashboardData);
 router.put('/sendAcknowledgementLetter',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetter);
@@ -34,6 +35,7 @@ router.get('/fetchEvenSemRegistrationApplications',authMiddlewares.auth,authMidd
 router.put('/acceptEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.acceptEvenSemRegistrationApplication);
 router.put('/rejectEvenSemRegistrationApplication',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.rejectEvenSemRegistrationApplication);
 router.put('/sendAcknowledgementLetterEvenSem',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.sendAcknowledgementLetterEvenSem);
-router.put('/startEvenSemRegistration', authMiddlewares.auth, authMiddlewares.isAdmin, adminController.startEvenSemRegistration);
+router.put('/startEvenSemRegistration', authMiddlewares.auth,authMiddlewares.isAdmin,adminController.startEvenSemRegistration);
+router.get('/getPendingComplaints',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.viewPendingComplaints);
 
 module.exports = router;
