@@ -6,7 +6,8 @@ const emailVerification = require('../mailTemplates/emailVerification');
 // const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
 const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
-const {UploadMedia} = require('../utilities/MediaUploader')
+// const {UploadMedia} = require('../utilities/MediaUploader')
+const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
@@ -432,7 +433,8 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        const uploadedImage = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        // const uploadedImage = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        const uploadedImage = await uploadMediaToS3(file, process.env.FOLDER_NAME_PROFILE_IMAGES, rollNo);
         if(!uploadedImage){
             return res.status(400).json({
                 success:false,
@@ -442,7 +444,8 @@ exports.createStudentAccount = async(req,res) => {
 
         let uploadedInstituteFeeReceipt = null;
         if(instituteFeeReceipt){
-            uploadedInstituteFeeReceipt = await UploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS);
+            // uploadedInstituteFeeReceipt = await UploadMedia(instituteFeeReceipt,process.env.FOLDER_NAME_DOCS);
+            uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
             if(!uploadedInstituteFeeReceipt){
                 return res.status(400).json({
                     success:false,
@@ -452,7 +455,8 @@ exports.createStudentAccount = async(req,res) => {
         }
         
 
-        const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
+        // const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
+        const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
         if(!uploadedHostelFeeReceipt){
             return res.status(400).json({
                 success:false,
@@ -477,7 +481,8 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.secure_url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.secure_url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.secure_url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.secure_url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.secure_url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.secure_url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
 
         return res.status(200).json({

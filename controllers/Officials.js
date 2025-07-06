@@ -1,6 +1,7 @@
-const {UploadMedia} = require('../utilities/MediaUploader')
+// const {UploadMedia} = require('../utilities/MediaUploader')
 
-const { PrismaClient } = require('@prisma/client')
+const { PrismaClient } = require('@prisma/client');
+const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 const Prisma = new PrismaClient();
 
 exports.getDashboardData = async(req,res) => {
@@ -46,7 +47,8 @@ exports.createAnnouncement = async(req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_DOCS);
+            // uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_DOCS);
+            uploadedFile = await uploadMediaToS3(file, process.env.FOLDER_NAME_ANNOUCEMENTS);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
@@ -55,7 +57,8 @@ exports.createAnnouncement = async(req,res) => {
             }
         }
 
-        await Prisma.announcement.create({data : {title,textContent,fileUrl: uploadedFile ? [uploadedFile.secure_url] : [],createdById:officialDetails.id}});
+        // await Prisma.announcement.create({data : {title,textContent,fileUrl: uploadedFile ? [uploadedFile.secure_url] : [],createdById:officialDetails.id}});
+        await Prisma.announcement.create({data : {title,textContent,fileUrl: uploadedFile ? [uploadedFile.url] : [],createdById:officialDetails.id}});
 
         return res.status(200).json({
             success:true,

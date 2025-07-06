@@ -1,6 +1,6 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
-const {UploadMedia} = require('../utilities/MediaUploader');
+// const {UploadMedia} = require('../utilities/MediaUploader');
 const bcrypt = require("bcrypt")
 const PdfGenerator = require("../utilities/PdfGenerator");
 const SendEmail = require('../utilities/MailSender');
@@ -13,6 +13,7 @@ const XLSX = require('xlsx');
 const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAcknowledgementAttachement');
 const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
 const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
+const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -25,7 +26,8 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        const uploadedFile = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        // const uploadedFile = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
+        const uploadedFile = await uploadMediaToS3(image,process.env.FOLDER_NAME_EXTRAS,name);
         if(!uploadedFile){
             return res.status(400).json({
                 success:false,
@@ -33,7 +35,7 @@ exports.createHostelBlock = async(req,res) => {
             })
         }
 
-        await Prisma.hostelBlock.create({data : {name,image:uploadedFile.secure_url,gender,roomType,floorCount,capacity,year}});
+        await Prisma.hostelBlock.create({data : {name,image:uploadedFile.url,gender,roomType,floorCount,capacity,year}});
         return res.status(200).json({
             success:true,
             message:"Hostel Block Created Successfully",
@@ -1216,7 +1218,8 @@ exports.changeStudentProfilePhoto = async(req,res) => {
 
         instituteStudentId = parseInt(instituteStudentId);
 
-        const uploadedProfilePic = await UploadMedia(newProfilePic,process.env.FOLDER_NAME_IMAGES);
+        // const uploadedProfilePic = await UploadMedia(newProfilePic,process.env.FOLDER_NAME_IMAGES);
+        const uploadedProfilePic = await uploadMediaToS3(newProfilePic,process.env.FOLDER_NAME_PROFILE_IMAGES);
         if(!uploadedProfilePic){
             return res.status(400).json({
                 success:false,
@@ -1224,7 +1227,7 @@ exports.changeStudentProfilePhoto = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.update({where : {id : instituteStudentId}, data:{image:uploadedProfilePic?.secure_url}});
+        await Prisma.instituteStudent.update({where : {id : instituteStudentId}, data:{image:uploadedProfilePic?.url}});
         return res.status(200).json({
             success:true,
             message:"Changed Image Successfully",

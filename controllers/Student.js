@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
-const {UploadMedia} = require('../utilities/MediaUploader')
+// const {UploadMedia} = require('../utilities/MediaUploader')
+const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
 exports.CreateOutingApplication = async (req, res) => {
     try {
@@ -215,7 +216,8 @@ exports.createHostelComplaint = async (req,res) => {
 
         let uploadedFile = null;
         if(file){
-            uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_IMAGES);
+            // uploadedFile = await UploadMedia(file,process.env.FOLDER_NAME_IMAGES);
+            uploadedFile = await uploadMediaToS3(file,process.env.FOLDER_NAME_COMPLAINTS);
             if(!uploadedFile){
                 return res.status(403).json({
                     success:false,
@@ -224,7 +226,7 @@ exports.createHostelComplaint = async (req,res) => {
             }
         }
 
-        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.id,fileUrl: uploadedFile ? [uploadedFile.secure_url] : []}});
+        await Prisma.hostelComplaint.create({data : {category, about, status:"UNRESOLVED", hostelBlockId:studentDetails?.hostelBlockId, instituteStudentId:studentDetails?.id,fileUrl: uploadedFile ? [uploadedFile.url] : []}});
         return res.status(200).json({
             success:true,
             message:"Hostel Complaint Created Successfully",
@@ -680,7 +682,8 @@ exports.addEvenSemFeeReceipt = async(req,res) => {
             })
         }
 
-        const uploadedFile = await UploadMedia(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_IMAGES);
+        // const uploadedFile = await UploadMedia(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_IMAGES);
+        const uploadedFile = await uploadMediaToS3(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS,studentDetails?.rollNo);
         if(!uploadedFile){
             return res.status(403).json({
                 success:false,
@@ -688,7 +691,7 @@ exports.addEvenSemFeeReceipt = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.update({where:{id : studentDetails?.id}, data:{hostelFeeReceipt2: uploadedFile?.secure_url, paymentDate2, paymentMode2, amountPaid2}});
+        await Prisma.instituteStudent.update({where:{id : studentDetails?.id}, data:{hostelFeeReceipt2: uploadedFile?.url, paymentDate2, paymentMode2, amountPaid2}});
         return res.status(200).json({
             success:true,
             message:"File Submitted Successfully",

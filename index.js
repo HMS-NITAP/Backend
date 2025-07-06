@@ -6,8 +6,8 @@ const cookieParser = require('cookie-parser');
 const routes = require('./routes');
 const PORT = process.env.PORT || 4000;
 
-const {cloudinaryConnect} = require('./config/cloudinary');
-cloudinaryConnect();
+// const {cloudinaryConnect} = require('./config/cloudinary');
+// cloudinaryConnect();
 
 app.use(express.json());
 app.use(cookieParser());
