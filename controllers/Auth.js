@@ -434,7 +434,7 @@ exports.createStudentAccount = async(req,res) => {
         }
 
         // const uploadedImage = await UploadMedia(image,process.env.FOLDER_NAME_IMAGES);
-        const uploadedImage = await uploadMediaToS3(file, process.env.FOLDER_NAME_PROFILE_IMAGES, rollNo);
+        const uploadedImage = await uploadMediaToS3(image, process.env.FOLDER_NAME_PROFILE_IMAGES, rollNo);
         if(!uploadedImage){
             return res.status(400).json({
                 success:false,
