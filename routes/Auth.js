@@ -6,7 +6,7 @@ const {authController} = require('../controllers');
 
 router.post("/createStudentAccount",authController.createStudentAccount);
 router.post("/sendOTP",authController.sendOTP);
-router.post("/signup",authController.signup);
+// router.post("/signup",authController.signup);
 router.post("/login",authController.login);
 // router.post("/changePassword",authMiddlewares.auth,authController.signup);
 router.post("/resetPasswordToken",authController.resetPasswordToken);

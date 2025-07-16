@@ -69,70 +69,70 @@ exports.sendOTP = async (req,res) => {
     }
 }
 
-exports.signup = async(req,res) => {
-    try{
-        const {email,password,confirmPassword,otp,accountType} = req.body;
+// exports.signup = async(req,res) => {
+//     try{
+//         const {email,password,confirmPassword,otp,accountType} = req.body;
 
-        if(!email || !password || !confirmPassword || !otp || !accountType){
-            return res.status(400).json({
-                success:false,
-                message:"Some data Not Found",
-            })
-        }
+//         if(!email || !password || !confirmPassword || !otp || !accountType){
+//             return res.status(400).json({
+//                 success:false,
+//                 message:"Some data Not Found",
+//             })
+//         }
 
-        if(accountType !== "ADMIN"){
-            return res.status(404).json({
-                success:false,
-                message:"Only for ADMIN account creation",
-            })
-        }
+//         if(accountType !== "ADMIN"){
+//             return res.status(404).json({
+//                 success:false,
+//                 message:"Only for ADMIN account creation",
+//             })
+//         }
 
-        if(password !== confirmPassword){
-            return res.status(400).json({
-                success:false,
-                message:"Both passwords are not matching",
-            });
-        };
-        const isUserExistsAlready = await Prisma.user.findFirst({where : {email}});
-        if(isUserExistsAlready){
-            return res.status(401).json({
-                success:false,
-                message:"User Already Registered",
-            });
-        };
+//         if(password !== confirmPassword){
+//             return res.status(400).json({
+//                 success:false,
+//                 message:"Both passwords are not matching",
+//             });
+//         };
+//         const isUserExistsAlready = await Prisma.user.findFirst({where : {email}});
+//         if(isUserExistsAlready){
+//             return res.status(401).json({
+//                 success:false,
+//                 message:"User Already Registered",
+//             });
+//         };
         
-        const mostRecentOTP = await Prisma.oTP.findFirst({
-            where: { email },
-            orderBy: { createdAt: 'desc' }
-        });
-        if(!mostRecentOTP){
-            return res.status(404).json({
-                success:false,
-                message:"OTP not found",
-            });
-        }else if(mostRecentOTP.otp !== otp){
-            return res.status(401).json({
-                success:false,
-                message:"Invalid OTP",
-            })
-        };
+//         const mostRecentOTP = await Prisma.oTP.findFirst({
+//             where: { email },
+//             orderBy: { createdAt: 'desc' }
+//         });
+//         if(!mostRecentOTP){
+//             return res.status(404).json({
+//                 success:false,
+//                 message:"OTP not found",
+//             });
+//         }else if(mostRecentOTP.otp !== otp){
+//             return res.status(401).json({
+//                 success:false,
+//                 message:"Invalid OTP",
+//             })
+//         };
 
-        const hashedPassword = await bcrypt.hash(password,10);
+//         const hashedPassword = await bcrypt.hash(password,10);
 
-        await Prisma.user.create({data:{email,password:hashedPassword,accountType:"ADMIN",status:"ACTIVE"}});
+//         await Prisma.user.create({data:{email,password:hashedPassword,accountType:"ADMIN",status:"ACTIVE"}});
 
-        return res.status(200).json({
-            success:true,
-            message:"User Registered Successfully",
-        })
-    }catch(e){
-        console.log(e);
-        return res.status(400).json({
-            success:false,
-            message:"Signup Operation Failed",
-        })
-    }
-}
+//         return res.status(200).json({
+//             success:true,
+//             message:"User Registered Successfully",
+//         })
+//     }catch(e){
+//         console.log(e);
+//         return res.status(400).json({
+//             success:false,
+//             message:"Signup Operation Failed",
+//         })
+//     }
+// }
 
 exports.login = async(req,res) => {
     try{
