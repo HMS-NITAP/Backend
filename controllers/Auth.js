@@ -9,7 +9,8 @@ const crypto = require('crypto');
 // const {UploadMedia} = require('../utilities/MediaUploader')
 const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
-const { PrismaClient } = require('@prisma/client')
+const { PrismaClient } = require('@prisma/client');
+const { IS_REGISTRATION_ON } = require("../config/constants");
 const Prisma = new PrismaClient();
 
 exports.sendOTP = async (req,res) => {
@@ -379,6 +380,14 @@ exports.verifyOTP = async(req,res) => {
 
 exports.createStudentAccount = async(req,res) => {
     try{
+
+        if(!IS_REGISTRATION_ON){
+            return res.status(400).json({
+                success: false,
+                message: "Registration Not yet started",
+            })
+        }
+
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
 
