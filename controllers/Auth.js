@@ -10,11 +10,19 @@ const crypto = require('crypto');
 const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
 const { PrismaClient } = require('@prisma/client');
-const { IS_REGISTRATION_ON } = require("../config/constants");
+const { IS_REGISTRATION_ON, yearWiseStudentList } = require("../config/constants");
 const Prisma = new PrismaClient();
 
 exports.sendOTP = async (req,res) => {
     try{
+
+        if(!IS_REGISTRATION_ON){
+            return res.status(400).json({
+                success: false,
+                message: "Registration not yet started",
+            })
+        }
+
         const {email} = req.body;
         if(!email){
             return res.status(404).json({
@@ -380,24 +388,8 @@ exports.verifyOTP = async(req,res) => {
 
 exports.createStudentAccount = async(req,res) => {
     try{
-
-        if(!IS_REGISTRATION_ON){
-            return res.status(400).json({
-                success: false,
-                message: "Registration Not yet started",
-            })
-        }
-
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
-
-        // For 1st year Students
-        if(!email.endsWith("@student.nitandhra.ac.in") && year !== "1"){
-            return res.status(402).json({
-                success:false,
-                message:"Use Institute Email ID for Registration",
-            })
-        }
 
         if(!email || password===null || confirmPassword===null || !name || !regNo || !rollNo || !year || !branch || !gender || pwd===null || !community || !aadhaarNumber || !dob || !bloodGroup || !fatherName || !motherName || phone===null || parentsPhone===null || emergencyPhone===null || !address || !paymentMode || !paymentDate || !amountPaid || hostelBlockId===null || cotId===null){
             return res.status(404).json({
@@ -418,6 +410,30 @@ exports.createStudentAccount = async(req,res) => {
                 success:false,
                 message:"Both Passwords are Not Matching",
             })
+        }
+
+        // For 1st year Students
+        // if(!email.trim().endsWith("@student.nitandhra.ac.in") && year !== "1"){
+        //     return res.status(402).json({
+        //         success:false,
+        //         message:"Use Institute Email ID for Registration",
+        //     })
+        // }
+
+        if(!email.trim().endsWith("@student.nitandhra.ac.in")){
+            return res.status(402).json({
+                success:false,
+                message:"Use Institute Email ID for Registration",
+            })
+        }
+
+        // HERE MANAGE FOR 1st Yeat Students
+        const allowedRolls = yearWiseStudentList[year];
+        if(!allowedRolls || !allowedRolls.includes(rollNo.trim())){
+            return res.status(403).json({
+                success: false,
+                message: "You have selected invalid year of study, select your current year of study",
+            });
         }
 
         const ifUserExistsAlready = await Prisma.user.findFirst({where : {email}});
