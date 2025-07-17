@@ -1,9 +1,10 @@
-const IS_REGISTRATION_ON = true;
+const IS_REGISTRATION_ON = false;
 
 const yearWiseStudentList = {
-    "2" : ["422253", "422260"],
-    "3" : ["422256", "422102"],
-    "4" : ["422254", "422258"]
+    "1" : ["134451"],
+    "2" : ["134451"],
+    "3" : ["134451"],
+    "4" : ["134451"]
 }
 
 module.exports = { IS_REGISTRATION_ON, yearWiseStudentList };
