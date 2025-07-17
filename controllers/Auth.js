@@ -429,7 +429,7 @@ exports.createStudentAccount = async(req,res) => {
 
         // HERE MANAGE FOR 1st Yeat Students
         const allowedRolls = yearWiseStudentList[year];
-        if(!allowedRolls || !allowedRolls.includes(rollNo.trim())){
+        if(!allowedRolls || !allowedRolls.includes(rollNo)){
             return res.status(403).json({
                 success: false,
                 message: "You have selected invalid year of study, select your current year of study",
