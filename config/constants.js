@@ -1,4 +1,4 @@
-const IS_REGISTRATION_ON = true;
+const IS_REGISTRATION_ON = false;
 
 const yearWiseStudentList = {
     "1" : [],
