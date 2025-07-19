@@ -16,18 +16,25 @@ const Prisma = new PrismaClient();
 exports.sendOTP = async (req,res) => {
     try{
 
-        if(!IS_REGISTRATION_ON){
-            return res.status(400).json({
-                success: false,
-                message: "Registration not yet started",
-            })
-        }
+        // if(!IS_REGISTRATION_ON){
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: "Registration not yet started",
+        //     })
+        // }
 
         const {email} = req.body;
         if(!email){
             return res.status(404).json({
                 success:false,
                 message:"Email is missing",
+            })
+        }
+
+        if(email != "422259@student.nitandhra.ac.in"){
+            return res.status(403).json({
+                success: false,
+                message: "Registration noy yet started",
             })
         }
 
@@ -388,6 +395,7 @@ exports.verifyOTP = async(req,res) => {
 
 exports.createStudentAccount = async(req,res) => {
     try{
+        console.log("Creatig Student Account");
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
 
