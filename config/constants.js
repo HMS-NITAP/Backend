@@ -1,10 +1,10 @@
-const IS_REGISTRATION_ON = true;
+const IS_REGISTRATION_ON = false;
 
 const yearWiseStudentList = {
         "1" : [],
         "2" : [],
         "3" : [],
-        "4" : ["422259", "422256", "422102", "422105"]
+        "4" : ["422259", "422105", "422203", "722224", "722254", "722125", "422256", "622150", "722128", "722204", "722244", "622217", "422102", "322223"]
 }
 
 // const yearWiseStudentList = {

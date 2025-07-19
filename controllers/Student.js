@@ -8,8 +8,6 @@ exports.CreateOutingApplication = async (req, res) => {
         const { type, from, to, placeOfVisit, purpose } = req.body;
         const { id } = req.user;
 
-        console.log(req.body);
-
         if (!type || !from || !to || !placeOfVisit || !purpose || !id) {
             return res.status(404).json({
                 success: false,

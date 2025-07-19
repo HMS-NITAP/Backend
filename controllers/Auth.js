@@ -31,13 +31,6 @@ exports.sendOTP = async (req,res) => {
             })
         }
 
-        // if(email != "422259@student.nitandhra.ac.in"){
-        //     return res.status(403).json({
-        //         success: false,
-        //         message: "Registration noy yet started",
-        //     })
-        // }
-
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
@@ -200,7 +193,6 @@ exports.login = async(req,res) => {
                 message : "Logged In Successfully",
             })
         }else{
-            console.log("Password Not Matching");
             return res.status(400).json({
                 success:false,
                 message:"Log In Unsuccessful",
@@ -303,13 +295,11 @@ exports.resetPassword = async(req,res) => {
 
         const user = await Prisma.user.findFirst({where:{token}});
         if(!user){
-            console.log("fdfdfr");
             return res.status(404).json({
                 success:false,
                 message:"Token Invalid",
             });
         }
-        console.log("user" ,user);
         if(user.resetPasswordExpiresIn < Date.now()){
             return res.status(400).json({
                 success:false,
@@ -395,7 +385,6 @@ exports.verifyOTP = async(req,res) => {
 
 exports.createStudentAccount = async(req,res) => {
     try{
-        console.log("Creatig Student Account");
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
         const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
 

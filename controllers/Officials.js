@@ -491,7 +491,6 @@ exports.markOutingApplicationCompletedWithoutDelay = async(req,res) => {
 
 exports.markOutingApplicationCompletedWithDelay = async(req, res) => {
     try {
-        console.log("HERE");
         let { applicationId, remarks } = req.body;
 
         if(!applicationId){

@@ -21,7 +21,6 @@ exports.uploadMediaToS3 = async (file, folder = 'extras', filename = null, heigh
 
     await s3Client.send(command);
     const url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${finalFileName}`;
-    console.log("URL")
 
     return {
       success: true,
