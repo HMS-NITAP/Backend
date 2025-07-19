@@ -1,5 +1,11 @@
 const express = require('express');
 const app = express();
+
+app.use((req, res, next) => {
+    console.log(`[REQ] ${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+    next();
+});
+
 const cors = require("cors");
 const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
@@ -30,6 +36,11 @@ app.get("/",(_,res) => {
         success:true,
         message:"Server is Running...",
     })
+});
+
+app.use((err, req, res, next) => {
+    console.error("[UPLOAD ERROR]", err);
+    return res.status(500).json({ success: false, message: "Server error", error: err.message });
 });
 
 app.listen(PORT,() => {
