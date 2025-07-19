@@ -4,7 +4,7 @@ const yearWiseStudentList = {
         "1" : [],
         "2" : [],
         "3" : [],
-        "4" : ["422259"]
+        "4" : ["422259", "422256", "422102", "422105"]
 }
 
 // const yearWiseStudentList = {
