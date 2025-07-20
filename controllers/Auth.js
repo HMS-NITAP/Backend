@@ -11,6 +11,7 @@ const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
 
 const { PrismaClient } = require('@prisma/client');
 const { IS_REGISTRATION_ON, yearWiseStudentList } = require("../config/constants");
+const SendEmailProxy = require("../utilities/MailSenderProxy");
 const Prisma = new PrismaClient();
 
 exports.sendOTP = async (req,res) => {
@@ -56,7 +57,8 @@ exports.sendOTP = async (req,res) => {
         await Prisma.oTP.create({data:{email:email,otp:otp}});
 
         try{
-            await SendEmail(email,"Verification OTP | NIT Andhra Pradesh",emailVerification(otp));
+            // await SendEmail(email,"Verification OTP | NIT Andhra Pradesh",emailVerification(otp));
+            await SendEmailProxy(email,"Verification OTP | NIT Andhra Pradesh",emailVerification(otp));
         }catch(e){
             console.log(e);
             return res.status(400).json({
@@ -269,7 +271,8 @@ exports.resetPasswordToken = async(req,res) => {
               resetPasswordExpiresIn: new Date(Date.now() + 5 * 60 * 1000),
             },
         });
-        await SendEmail(email,"Reset Password Token | NIT Andhra Pradesh HMS",resetPassword(token));
+        // await SendEmail(email,"Reset Password Token | NIT Andhra Pradesh HMS",resetPassword(token));
+        await SendEmailProxy(email,"Reset Password Token | NIT Andhra Pradesh HMS",resetPassword(token));
         return res.status(200).json({
             success:true,
             message:"Reset Password Token Mail Sent Successfully",
