@@ -451,7 +451,7 @@ exports.createStudentAccount = async(req,res) => {
         if(cotDetails?.status !== "AVAILABLE"){
             return res.status(402).json({
                 success:false,
-                message:"Cot already booked, refresh the page using the above icon",
+                message:"Cot already booked, refresh the page using the refresh icon above rooms list",
             })
         }
 
