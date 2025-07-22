@@ -32,6 +32,15 @@ exports.sendOTP = async (req,res) => {
             })
         }
 
+        const rollNo = email.slice(0,6);
+        const allowedRolls = yearWiseStudentList["4"];
+        if(!allowedRolls || !allowedRolls.includes(rollNo)){
+            return res.status(403).json({
+                success: false,
+                message: "Registration not yet started",
+            });
+        }
+
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
