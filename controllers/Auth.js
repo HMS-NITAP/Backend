@@ -48,6 +48,7 @@ exports.sendOTP = async (req,res) => {
         };
 
         let otp = OTPgenerator.generate(6,options);
+        console.log(otp);
         let result = await Prisma.oTP.findFirst({ where: { otp } });
         while(result){
             otp = OTPgenerator.generate(6,options);
@@ -412,20 +413,19 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        // For 1st year Students
-        // if(!email.trim().endsWith("@student.nitandhra.ac.in") && year !== "1"){
-        //     return res.status(402).json({
-        //         success:false,
-        //         message:"Use Institute Email ID for Registration",
-        //     })
-        // }
-
-        if(!email.trim().endsWith("@student.nitandhra.ac.in")){
+        if(!email.trim().endsWith("@student.nitandhra.ac.in") && year !== "1"){
             return res.status(402).json({
                 success:false,
                 message:"Use Institute Email ID for Registration",
             })
         }
+
+        // if(!email.trim().endsWith("@student.nitandhra.ac.in")){
+        //     return res.status(402).json({
+        //         success:false,
+        //         message:"Use Institute Email ID for Registration",
+        //     })
+        // }
 
         // HERE MANAGE FOR 1st Year Students
         const allowedRolls = yearWiseStudentList[year];

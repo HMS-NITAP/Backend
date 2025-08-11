@@ -405,6 +405,7 @@ exports.acceptRegistrationApplication = async(req,res) => {
             date = date.toLocaleDateString();
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            // await SendEmail("hosteloffice@nitandhra.ac.in",`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo} | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -884,13 +885,13 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         }
 
         try{
-            console.log("STUS", studentDetails);
             let date = new Date();
             date = date.toLocaleDateString();
             if(studentDetails?.hostelFeeReceipt2 === null){
                 // ODD SEM
                 const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-                await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+                await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo} | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+                // await SendEmail('hosteloffice@nitandhra.ac.in',`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo}`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
                 fs.unlinkSync(pdfPath);
             }else{
                 // EVEN SEM

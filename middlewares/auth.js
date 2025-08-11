@@ -42,6 +42,14 @@ exports.isAdmin = async (req,res,next) => {
                 message:"Only Admin is Authorized in this Route",
             })
         }
+        const restrictedAdminId = 1564;
+        const allowedDummyAdminRoute = "/fetchStudentByRollNoAndRegNo";
+        if((details.id === restrictedAdminId) && (req.path !== allowedDummyAdminRoute)){
+            return res.status(403).json({
+                success: false,
+                message: `Access Denied`,
+            });
+        }
         next();
     }catch(e){
         return res.status(400).json({
