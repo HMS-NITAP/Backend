@@ -48,7 +48,6 @@ exports.sendOTP = async (req,res) => {
         };
 
         let otp = OTPgenerator.generate(6,options);
-        console.log(otp);
         let result = await Prisma.oTP.findFirst({ where: { otp } });
         while(result){
             otp = OTPgenerator.generate(6,options);
@@ -429,7 +428,7 @@ exports.createStudentAccount = async(req,res) => {
 
         // HERE MANAGE FOR 1st Year Students
         const allowedRolls = yearWiseStudentList[year];
-        if(!allowedRolls || !allowedRolls.includes(rollNo)){
+        if((year != 1) && (!allowedRolls || !allowedRolls.includes(rollNo))){
             return res.status(403).json({
                 success: false,
                 message: "You have selected invalid year of study, select your current year of study",
