@@ -1696,3 +1696,90 @@ exports.viewPendingComplaints = async(_, res) => {
         })
     }
 }
+
+exports.downloadAllStudentDetailsXlsxFile = async (req, res) => {
+    try {
+        const allStudentDetails = await Prisma.instituteStudent.findMany({
+            include: {
+                hostelBlock: true,
+                cot: {
+                    include: {
+                        room: true,
+                    },
+                },
+            },
+            orderBy: [
+                {
+                    hostelBlock: {
+                        name: 'asc',
+                    },
+                },
+                {
+                    rollNo: 'asc',
+                },
+            ],
+        });
+
+        if (!allStudentDetails || allStudentDetails.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No students found in the database to export.",
+            });
+        }
+
+        const dataForExcel = allStudentDetails.map(student => ({
+            'Name': student.name,
+            'Roll Number': student.rollNo,
+            'Registration Number': student.regNo,
+            'Gender': student.gender,
+            'Room Number': student.cot?.room?.roomNumber ?? 'N/A',
+            'Floor Number': student.cot?.room?.floorNumber ?? 'N/A',
+            'Block Name': student.hostelBlock?.name ?? 'N/A',
+            'Year': student.year,
+        }));
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
+
+        worksheet['!cols'] = [
+            { wch: 25 },
+            { wch: 15 },
+            { wch: 18 },
+            { wch: 10 },
+            { wch: 15 },
+            { wch: 15 },
+            { wch: 20 },
+            { wch: 10 },
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'AllStudents');
+
+        const fileName = `All_Student_Details_${new Date().toISOString().split('T')[0]}.xlsx`;
+        const filePath = `./${fileName}`;
+        XLSX.writeFile(workbook, filePath);
+
+        const emailBody = `<p>Dear Admin,</p><p>Please find the attached .xlsx file containing the details of all students registered in the HMS portal.</p><p>This is an auto-generated email.</p>`;
+        
+        await SendEmail(
+            "hmsnitap@gmail.com", 
+            "All Student Details Report | HMS NIT AP", 
+            emailBody, 
+            filePath, 
+            fileName
+        );
+
+        fs.unlinkSync(filePath);
+
+        return res.status(200).json({
+            success: true,
+            message: "File with all student details has been sent to the designated email.",
+        });
+
+    } catch (e) {
+        console.error("Error in downloadAllStudentDetailsXlsxFile:", e);
+        return res.status(500).json({
+            success: false,
+            message: "An error occurred while generating the report. Please try again later.",
+        });
+    }
+};
