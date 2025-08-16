@@ -404,8 +404,8 @@ exports.acceptRegistrationApplication = async(req,res) => {
             let date = new Date();
             date = date.toLocaleDateString();
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
-            // await SendEmail("hosteloffice@nitandhra.ac.in",`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo} | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION - ${studentDetails?.rollNo} | NIT ANDHRA PRADESH`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            // await SendEmail("hosteloffice@nitandhra.ac.in",`${studentDetails?.rollNo} - HMS 1st Year Confirmation  | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -609,7 +609,7 @@ exports.confirmFreezedStudentRegistration = async(req,res) => {
             let date = new Date();
             date = date.toLocaleDateString();
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo,studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION - ${studentDetails?.rollNo} | NIT ANDHRA PRADESH`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -890,7 +890,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
             if(studentDetails?.hostelFeeReceipt2 === null){
                 // ODD SEM
                 const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-                await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo} | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+                await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION - ${studentDetails?.rollNo} | NIT ANDHRA PRADESH`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
                 // await SendEmail('hosteloffice@nitandhra.ac.in',`HOSTEL ALLOTMENT CONFIRMATION ${studentDetails?.rollNo}`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
                 fs.unlinkSync(pdfPath);
             }else{
@@ -1781,6 +1781,68 @@ exports.downloadAllStudentDetailsXlsxFile = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "An error occurred while generating the report. Please try again later.",
+        });
+    }
+};
+
+exports.editStudentAccount = async (req, res) => {
+    try {
+        const { studentId, rollNo, regNo, name, aadhaarNumber, fatherName, motherName, phone, parentsPhone, emergencyPhone, address } = req.body;
+
+        if (!studentId) {
+            return res.status(400).json({
+                success: false,
+                message: "Student ID (studentId) is required in the request body.",
+            });
+        }
+
+        const parsedStudentId = parseInt(studentId);
+        if (isNaN(parsedStudentId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Student ID provided.",
+            });
+        }
+        
+        const existingStudent = await Prisma.instituteStudent.findUnique({
+            where: { id: parsedStudentId },
+        });
+
+        if (!existingStudent) {
+            return res.status(404).json({
+                success: false,
+                message: "Student with the given ID not found.",
+            });
+        }
+
+        const updateData = {
+            rollNo,
+            regNo,
+            name,
+            aadhaarNumber,
+            fatherName,
+            motherName,
+            phone,
+            parentsPhone,
+            emergencyPhone,
+            address,
+        };
+        
+        await Prisma.instituteStudent.update({
+            where: { id: parsedStudentId },
+            data: updateData,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Student details updated successfully.",
+        });
+
+    } catch (e) {
+        console.log("ERROR WHILE EDITING STUDENT ACCOUNT:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to update student account due to an internal server error.",
         });
     }
 };

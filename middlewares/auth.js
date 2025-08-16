@@ -43,8 +43,12 @@ exports.isAdmin = async (req,res,next) => {
             })
         }
         const restrictedAdminId = 1564;
-        const allowedDummyAdminRoute = "/fetchStudentByRollNoAndRegNo";
-        if((details.id === restrictedAdminId) && (req.path !== allowedDummyAdminRoute)){
+        const allowedDummyAdminRoutes = [
+            "/fetchStudentByRollNoAndRegNo",
+            "/editStudentAccount",
+            "/deleteStudentAccount"
+        ];        
+        if((details.id === restrictedAdminId) && !allowedDummyAdminRoutes.includes(req.path)){
             return res.status(403).json({
                 success: false,
                 message: `Access Denied`,

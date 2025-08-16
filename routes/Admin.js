@@ -38,5 +38,6 @@ router.put('/sendAcknowledgementLetterEvenSem',authMiddlewares.auth,authMiddlewa
 router.put('/startEvenSemRegistration', authMiddlewares.auth,authMiddlewares.isAdmin,adminController.startEvenSemRegistration);
 router.get('/getPendingComplaints',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.viewPendingComplaints);
 router.get("/downloadAllStudentDetailsXlsxFile", authMiddlewares.auth, authMiddlewares.isAdmin, adminController.downloadAllStudentDetailsXlsxFile);
+router.put('/editStudentAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.editStudentAccount);
 
 module.exports = router;
