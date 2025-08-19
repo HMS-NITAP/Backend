@@ -1699,7 +1699,7 @@ exports.viewPendingComplaints = async(_, res) => {
     }
 }
 
-exports.downloadAllStudentDetailsXlsxFile = async (req, res) => {
+exports.downloadAllStudentDetailsXlsxFile = async (_, res) => {
     try {
         const allStudentDetails = await Prisma.instituteStudent.findMany({
             include: {
@@ -1738,6 +1738,7 @@ exports.downloadAllStudentDetailsXlsxFile = async (req, res) => {
             'Floor Number': student.cot?.room?.floorNumber ?? 'N/A',
             'Block Name': student.hostelBlock?.name ?? 'N/A',
             'Year': student.year,
+            'Phone Number': student.phone ?? 'N/A',
         }));
 
         const workbook = XLSX.utils.book_new();

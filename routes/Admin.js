@@ -39,7 +39,7 @@ router.put('/startEvenSemRegistration', authMiddlewares.auth,authMiddlewares.isA
 router.get('/getPendingComplaints',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.viewPendingComplaints);
 router.get("/downloadAllStudentDetailsXlsxFile", authMiddlewares.auth, authMiddlewares.isAdmin, adminController.downloadAllStudentDetailsXlsxFile);
 router.put('/editStudentAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.editStudentAccount);
-router.put('/createNewStudentFirstYear',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.createNewStudentFirstYear);
+router.post('/createNewStudentFirstYear',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.createNewStudentFirstYear);
 router.get('/fetchFirstYearStudentApplications',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchFirstYearStudentApplications);
 router.put('/allotRoomForStudentFirstYear',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.allotRoomForStudentFirstYear);
 
