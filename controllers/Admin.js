@@ -1937,15 +1937,17 @@ exports.fetchFirstYearStudentApplications = async(_, res) => {
 
 exports.allotRoomForStudentFirstYear = async(req,res) => {
     try{
-        const {studentId, cotId} = req.body;
-        if(!studentId){
+        let {studentId, cotId} = req.body;
+        if(!studentId || !cotId){
             return res.status(404).json({
                 success: false,
                 message: "Student ID is missing",
             });
         }
-
-        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}, include:{hostelBlock:true}});
+        
+        studentId = parseInt(studentId);
+        cotId = parseInt(cotId);
+        let studentDetails = await Prisma.instituteStudent.findUnique({where : {id: studentId}});
         if(!studentDetails){
             return res.status(404).json({
                 success: false,
@@ -1962,20 +1964,30 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
         }
         
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
-        await Prisma.instituteStudent.update({
+        studentDetails = await Prisma.instituteStudent.update({
             where: { id: studentId },
             data: {
-                cotId: parseInt(cotId),
-                hostelBlockId: cotDetails.room.hostelBlockId,
-            }
+                cot: {
+                    connect: { id: cotId }
+                },
+                hostelBlock: {
+                    connect: { id: cotDetails.room.hostelBlockId }
+                },
+                user: {
+                    update: {
+                        status: "ACTIVE"
+                    }
+                }
+            },
         });
 
+        let uploadedPdf = null;
         try{
             let date = new Date();
             date = date.toLocaleDateString();
             const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             const dummyFile = { tempFilePath: pdfPath, name: `${studentDetails?.rollNo}.pdf`, mimetype: "application/pdf" };
-            const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, rollNo);
+            uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, studentDetails?.rollNo);
             if(!uploadedPdf){
                 return res.status(400).json({
                     success:false,
@@ -1989,11 +2001,6 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 });
             }
             fs.unlinkSync(pdfPath);
-            return res.status(200).json({
-                success: true,
-                message: "Room allotted successfully and acknowledgement letter generated.",
-                data : uploadedPdf?.url,
-            })
         }catch(e){
             console.log(e);
             return res.status(400).json({
@@ -2001,8 +2008,14 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message:"Error Generating Allotment Letter",
             });
         };
-
+        
+        return res.status(200).json({
+            success: true,
+            message: "Room allotted successfully and acknowledgement letter generated.",
+            data : uploadedPdf?.url,
+        })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success: false,
             message: "Failed to allot room for the student.",

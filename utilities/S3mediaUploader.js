@@ -7,8 +7,12 @@ exports.uploadMediaToS3 = async (file, folder = 'extras', filename = null, heigh
   try {
     const fileBuffer = fs.readFileSync(file.tempFilePath);
     const extension = path.extname(file.name);
+    // const finalFileName = filename
+    //   ? `${folder}/${filename}_${Date.now()}${extension}`
+    //   : `${folder}/${Date.now()}${extension}`;
+
     const finalFileName = filename
-      ? `${folder}/${filename}_${Date.now()}${extension}`
+      ? `${folder}/${filename}${extension}`
       : `${folder}/${Date.now()}${extension}`;
 
     const command = new PutObjectCommand({

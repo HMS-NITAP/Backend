@@ -147,15 +147,9 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
 
                 <div class="heading">Student Details :</div>
                 <div class="grid-container">
-                    // <div class="grid-item">
-                    //     <img class="logo" src=${image} alt="Student Image">
-                    // </div>
-
                     <div class="grid-item">
                         <p>Name: ${name}</p>
-                        // <p>Contact No: ${contact}</p>
                         <p>B.Tech Year: ${year}</p>
-                        <p>Amount Paid: ${amount}</p>
                     </div>
 
                     <div class="grid-item">
@@ -169,6 +163,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 <div class="grid-container">
                     <div class="grid-item">
                         <p>Hostel Block : ${blockName}</p> 
+                        <p>Amount Paid: ${amount}</p>
                     </div>
 
                     <div class="grid-item">
