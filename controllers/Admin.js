@@ -1853,6 +1853,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
     try{
         const { rollNo, regNo, name, gender, branch, amountPaid} = req.body;
         if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid){
+            console.log(rollNo, regNo, name, gender, branch, amountPaid);
             return res.status(404).json({
                 success: false,
                 message: "Required data is missing",
@@ -1868,7 +1869,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(rollNo,10);
-        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
+        const user = await Prisma.user.create({data : {email:`${rollNo}@student.nitandhra.ac.in`,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
         if(!user){
             return res.status(401).json({
                 success:false,
@@ -1890,6 +1891,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
             message: "New student account created successfully.",
         })
     }catch(e){
+        console.log(e);
         return res.status(400).json({
             success: false,
             message: "Failed to create new student account.",
