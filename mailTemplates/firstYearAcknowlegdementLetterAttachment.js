@@ -19,18 +19,12 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 .container {
                     max-width: 1180px;
                     margin: 0 auto;
-                    padding: 20px;
+                    /* padding: 20px; */
                     text-align: center;
                 }
         
                 .logo {
-                    max-width: 125px;
-                }
-
-                .image {
-                    width: 100px;
-                    height: 120px;
-                    borderRadiud : 10px;
+                    max-width: 80px;
                 }
 
                 .logoContainer {
@@ -44,18 +38,17 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 .main {
                     display: flex;
                     flex-direction: column;
-                    row-gap: 1px;
                 }
 
                 .mainH1 {
-                    font-size: 22px;
+                    font-size: 18px;
                     font-weight: 700;
                 }
         
                 .message {
-                    font-size: 16px;
+                    font-size: 14px;
                     font-weight: bold;
-                    margin-bottom: 10px;
+                    margin-bottom: 0px;
                 }
         
                 .body {
@@ -64,11 +57,13 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 }
         
                 .Acknowledgement {
+                    border-top: 1px solid #000;
+                    border-bottom: 1px solid #000;
                     font-weight: bold;
                 }
 
                 .title{
-                    font-size: 20px;
+                    font-size: 18px;
                 }
 
                 .Date {
@@ -88,14 +83,14 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 }
 
                 .grid-container {
-                    width: 90%;
+                    width: 95%;
                     margin: auto;
                     display: grid;
                     grid-template-columns: repeat(3, 1fr); 
                     grid-template-rows: 1fr; 
-                    gap: 10px;
-                    margin-top: 20px;
-                    margin-bottom: 20px; 
+                    gap: 5px;
+                    margin-top: 10px;
+                    margin-bottom: 0px; 
                 }
 
                 .grid-item {
@@ -105,6 +100,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     color: #000;
                     font-size: 16px;
                     font-weight: 500;
+                    gap: 10px;
                 }
 
                 .sign-container {
@@ -128,63 +124,100 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                         <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
                     </div>
                     <div class="main">
-                        <p class="mainH1">NATIONAL INSTITUTE OF TECHNOLOGY , ANDHRA PRADESH </p>
+                        <div class="mainH1">NATIONAL INSTITUTE OF TECHNOLOGY , ANDHRA PRADESH </div>
                         <span>TADEPALLIGUDEM-534102, WEST GODAVARI DIST., ANDHRA PRADESH, INDIA</span>
-                        <p class="message">HOSTEL OFFICE</p>
                     </div>
                 </div>
 
-                <hr>
-
                 <div class="Acknowledgement">
                     <div class="Date">
-                        <p class="title">Acknowledgement for Hostel Room Allocation (B.Tech)</p>
+                        <p class="title">Hostel Room Allocation Letter (Student Copy)</p>
                         <p>Date: ${date}</p>
                     </div>
                 </div>
 
-                <hr>
-
-                <div class="heading">Student Details :</div>
                 <div class="grid-container">
                     <div class="grid-item">
-                        <p>Name: ${name}</p>
-                        <p>B.Tech Year: ${year}</p>
+                        <div>Name: ${name}</div>
+                        <div>B.Tech Year: ${year}</div>
+                        <div>Roll No: ${rollNo}</div>
                     </div>
 
                     <div class="grid-item">
-                        <p>Roll No: ${rollNo}</p>
-                        <p>Reg No: ${regNo === "" ? "NA" : regNo}</p>
-                        <p>Gender: ${gender==="M" ? "Male" : "Female"}</p>
-                    </div>
-                </div>
-
-                <div class="heading">Payment and Hostel Allotment Details :</div>
-                <div class="grid-container">
-                    <div class="grid-item">
-                        <p>Hostel Block : ${blockName}</p> 
-                        <p>Amount Paid: ${amount}</p>
+                        <div>Gender: ${gender==="M" ? "Male" : "Female"}</div>
+                        <div>Hostel Block : ${blockName}</div> 
+                        <div>Amount Paid: ${amount}</div>
                     </div>
 
                     <div class="grid-item">
-                        <p>Floor No : ${floor}</p>
-                        <p>Room No : ${roomNo}</p>
-                        <p>Cot No : ${cotNo}</p>   
+                        <div>Floor No : ${floor}</div>
+                        <div>Room No : ${roomNo}</div>
+                        <div>Cot No : ${cotNo}</div>   
                     </div>
                 </div>
 
                 <div class="sign-container">
                     <div class="grid-item">
-                        <p>Signature of Student</p>
+                        <p>Reported On</p>
                     </div>
-                    <div class="grid-item">
+                    <div class="grid-item" style="text-align: center; gap: 0px;">
+                        <div>Signature of Authorised</div>
+                        <div>Hostel Office Official</div>
                     </div>
                     <div>
                         <p>Signature of Warden/Caretaker</p>
                     </div>
                 </div>
+            </div>
+            <hr />
+            <div class="container">
+                <div class="logoContainer">
+                    <div>
+                        <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
+                    </div>
+                    <div class="main">
+                        <div class="mainH1">NATIONAL INSTITUTE OF TECHNOLOGY , ANDHRA PRADESH </div>
+                        <span>TADEPALLIGUDEM-534102, WEST GODAVARI DIST., ANDHRA PRADESH, INDIA</span>
+                    </div>
+                </div>
 
-                <div class="heading"><p>(This is a computer-generated receipt and does not require a signature.)</p></div>
+                <div class="Acknowledgement">
+                    <div class="Date">
+                        <p class="title">Hostel Room Allocation Letter (Office Copy)</p>
+                        <p>Date: ${date}</p>
+                    </div>
+                </div>
+
+                <div class="grid-container">
+                    <div class="grid-item">
+                        <div>Name: ${name}</div>
+                        <div>B.Tech Year: ${year}</div>
+                        <div>Roll No: ${rollNo}</div>
+                    </div>
+
+                    <div class="grid-item">
+                        <div>Gender: ${gender==="M" ? "Male" : "Female"}</div>
+                        <div>Hostel Block : ${blockName}</div> 
+                        <div>Amount Paid: ${amount}</div>
+                    </div>
+
+                    <div class="grid-item">
+                        <div>Floor No : ${floor}</div>
+                        <div>Room No : ${roomNo}</div>
+                        <div>Cot No : ${cotNo}</div>   
+                    </div>
+                </div>
+
+                <div class="sign-container">
+                    <div class="grid-item">
+                    </div>
+                    <div class="grid-item" style="text-align: center; gap: 0px;">
+                        <div>Signature of Authorised</div>
+                        <div>Hostel Office Official</div>
+                    </div>
+                    <div>
+                    </div>
+                </div>
             </div>
         </body>
     </html>`
