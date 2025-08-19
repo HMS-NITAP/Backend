@@ -1884,13 +1884,15 @@ exports.createNewStudentFirstYear = async(req, res) => {
                 message:"User ID Not Found",
             })
         }
+        console.log("TERE");
         await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,outingRating:5.0,disciplineRating:5.0,userId}});
-
+        console.log("TERE1");
         return res.status(200).json({
             success: true,
             message: "New student account created successfully.",
         })
     }catch(e){
+        console.log("ERROR WHILE CREATING NEW STUDENT ACCOUNT:");
         console.log(e);
         return res.status(400).json({
             success: false,
