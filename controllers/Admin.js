@@ -1930,6 +1930,7 @@ exports.fetchFirstYearStudentApplications = async(_, res) => {
             data: studentApplication,
         })
     }catch(e){
+        console.log("ERROR",e);
         return res.status(400).json({
             success: false,
             message: "Failed to fetch first year student applications.",
