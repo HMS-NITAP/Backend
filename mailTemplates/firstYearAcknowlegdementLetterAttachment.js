@@ -110,7 +110,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     grid-template-columns: repeat(3, 1fr); 
                     grid-template-rows: 1fr; 
                     gap: 10px;
-                    margin-top: 40px;
+                    margin-top: 100px;
                     margin-bottom: 20px; 
                 }
 
