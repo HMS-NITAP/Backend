@@ -14,6 +14,7 @@ const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAckno
 const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
 const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
 const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
+const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -1846,3 +1847,162 @@ exports.editStudentAccount = async (req, res) => {
         });
     }
 };
+
+exports.createNewStudentFirstYear = async(req, res) => {
+    try{
+        const { rollNo, regNo, name, gender, branch, amountPaid} = req.body;
+        if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid){
+            return res.status(404).json({
+                success: false,
+                message: "Required data is missing",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where: { rollNo: rollNo}});
+        if(studentDetails){
+            return res.status(400).json({
+                success: false,
+                message: "Student with this Roll Number already exists",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(rollNo,10);
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
+        if(!user){
+            return res.status(401).json({
+                success:false,
+                message:"Unable to Create User",
+            })
+        }
+
+        const userId = user?.id;
+        if(!userId){
+            return res.status(404).json({
+                success:false,
+                message:"User ID Not Found",
+            })
+        }
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,outingRating:5.0,disciplineRating:5.0,userId}});
+
+        return res.status(200).json({
+            success: true,
+            message: "New student account created successfully.",
+        })
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Failed to create new student account.",
+        })
+    }
+}
+
+exports.fetchFirstYearStudentApplications = async(_, res) => {
+    try{
+        const studentApplication = await Prisma.user.findMany({
+            where: {
+                accountType: "STUDENT",
+                status: "INACTIVE",
+                instituteStudent: {
+                    year: "1"
+                }
+            },
+            include: {
+                instituteStudent: {
+                include: {
+                    cot: {
+                    include: {
+                        room: true
+                    }
+                    },
+                    hostelBlock: true,
+                }
+                }
+            }
+        });
+        return res.status(200).json({
+            success: true,
+            message: "Successfully fetched first year student applications.",
+            data: studentApplication,
+        })
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Failed to fetch first year student applications.",
+        })
+    }
+}
+
+exports.allotRoomForStudentFirstYear = async(req,res) => {
+    try{
+        const {studentId, cotId} = req.body;
+        if(!studentId){
+            return res.status(404).json({
+                success: false,
+                message: "Student ID is missing",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {userId}, include:{hostelBlock:true}});
+        if(!studentDetails){
+            return res.status(404).json({
+                success: false,
+                message: "Student not found",
+            });
+        }
+
+        const cotDetails = await Prisma.cot.findUnique({where: { id: cotId }, include: { room: true }});
+        if(!cotDetails || cotDetails.status !== "AVAILABLE"){
+            return res.status(404).json({
+                success: false,
+                message: "Cot not available for allotment",
+            });
+        }
+        
+        await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
+        await Prisma.instituteStudent.update({
+            where: { id: studentId },
+            data: {
+                cotId: parseInt(cotId),
+                hostelBlockId: cotDetails.room.hostelBlockId,
+            }
+        });
+
+        try{
+            let date = new Date();
+            date = date.toLocaleDateString();
+            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
+            const dummyFile = { tempFilePath: pdfPath, name: `${studentDetails?.rollNo}.pdf`, mimetype: "application/pdf" };
+            const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, rollNo);
+            if(!uploadedPdf){
+                return res.status(400).json({
+                    success:false,
+                    message:"File Upload Failed",
+                })
+            }
+            if(!uploadedPdf?.success){
+                return res.status(400).json({
+                    success: false,
+                    message: "PDF Upload Failed",
+                });
+            }
+            fs.unlinkSync(pdfPath);
+            return res.status(200).json({
+                success: true,
+                message: "Room allotted successfully and acknowledgement letter generated.",
+                data : uploadedPdf?.url,
+            })
+        }catch(e){
+            console.log(e);
+            return res.status(400).json({
+                success:false,
+                message:"Error Generating Allotment Letter",
+            });
+        };
+
+    }catch(e){
+        return res.status(400).json({
+            success: false,
+            message: "Failed to allot room for the student.",
+        })
+    }
+}
