@@ -47,7 +47,8 @@ exports.isAdmin = async (req,res,next) => {
             "/fetchStudentByRollNoAndRegNo",
             "/deleteStudentAccount",
             "/createNewStudentFirstYear",
-            "/fetchFirstYearStudentApplications"
+            "/fetchFirstYearStudentApplications",
+            "/getDashboardData"
         ];        
         if((details.id === restrictedAdminId) && !allowedDummyAdminRoutes.includes(req.path)){
             return res.status(403).json({
