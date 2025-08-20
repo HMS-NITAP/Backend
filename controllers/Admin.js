@@ -1971,17 +1971,22 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
             where: { id: studentId },
             data: {
                 cot: {
-                    connect: { id: cotId }
+                connect: { id: cotId }
                 },
                 hostelBlock: {
-                    connect: { id: cotDetails.room.hostelBlockId }
+                connect: { id: cotDetails.room.hostelBlockId }
                 },
                 user: {
-                    update: {
-                        status: "ACTIVE"
-                    }
+                update: {
+                    status: "ACTIVE"
+                }
                 }
             },
+            include: {
+                hostelBlock: true,   
+                cot: true,        
+                user: true         
+            }
         });
 
         let uploadedPdf = null;
