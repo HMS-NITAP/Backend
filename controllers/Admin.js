@@ -1966,7 +1966,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
             });
         }
         
-        await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
+        await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BOOKED"}});
         studentDetails = await Prisma.instituteStudent.update({
             where: { id: studentId },
             data: {
