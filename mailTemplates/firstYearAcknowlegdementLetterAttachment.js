@@ -170,7 +170,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                 </div>
             </div>
             <hr />
-            <div class="container">
+            <div class="container" style="margin-top: 900px;">
                 <div class="logoContainer">
                     <div>
                         <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
