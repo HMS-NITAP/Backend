@@ -1,5 +1,5 @@
 const OTPgenerator = require("otp-generator")
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const SendEmail = require("../utilities/MailSender")
 const emailVerification = require('../mailTemplates/emailVerification');
