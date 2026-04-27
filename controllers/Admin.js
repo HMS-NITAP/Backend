@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client')
 const Prisma = new PrismaClient();
 // const {UploadMedia} = require('../utilities/MediaUploader');
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcryptjs")
 const PdfGenerator = require("../utilities/PdfGenerator");
 const SendEmail = require('../utilities/MailSender');
 const fs = require("fs");
