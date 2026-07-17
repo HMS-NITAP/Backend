@@ -24,12 +24,20 @@ exports.sendOTP = async (req,res) => {
             })
         }
 
-        const {email} = req.body;
+        const {email,rollNo,year} = req.body;
         if(!email){
             return res.status(404).json({
                 success:false,
                 message:"Email is missing",
             })
+        }
+
+        const allowedRolls = yearWiseStudentList[year];
+        if((year != 1) && (!allowedRolls || !allowedRolls.includes(rollNo))){
+            return res.status(403).json({
+                success: false,
+                message: "You have selected invalid year of study, select your current year of study",
+            });
         }
 
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
@@ -111,7 +119,7 @@ exports.sendOTP = async (req,res) => {
 //                 message:"User Already Registered",
 //             });
 //         };
-        
+
 //         const mostRecentOTP = await Prisma.oTP.findFirst({
 //             where: { email },
 //             orderBy: { createdAt: 'desc' }
@@ -355,7 +363,7 @@ exports.verifyOTP = async(req,res) => {
                 message:"User Already Registered",
             });
         };
-        
+
         const mostRecentOTP = await Prisma.oTP.findFirst({
             where: { email },
             orderBy: { createdAt: 'desc' }
