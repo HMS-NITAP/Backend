@@ -1008,10 +1008,8 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
 
         let studentDetails;
 
-        if(idNumber.length === 6){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {rollNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
-        }else if(idNumber.length === 7){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {regNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
+        if(idNumber.length === 6 || idNumber.length === 7){
+            studentDetails = await Prisma.instituteStudent.findFirst({where : {OR : [{rollNo : idNumber},{regNo : idNumber}]}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
         }else{
             return res.status(402).json({
                 success:false,
