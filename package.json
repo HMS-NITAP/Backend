@@ -27,7 +27,7 @@
     "express-fileupload": "^1.5.2",
     "fs": "^0.0.1-security",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^6.10.1",
+    "nodemailer": "^9.0.3",
     "otp-generator": "^4.0.1",
     "postgres": "^3.4.9",
     "puppeteer": "^22.15.0",
