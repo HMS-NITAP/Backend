@@ -389,7 +389,7 @@ exports.verifyOTP = async(req,res) => {
 exports.createStudentAccount = async(req,res) => {
     try{
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
-        const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
+        const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files || {};
 
         if(!email || password===null || confirmPassword===null || !name || !regNo || !rollNo || !year || !branch || !gender || pwd===null || !community || !aadhaarNumber || !dob || !bloodGroup || !fatherName || !motherName || phone===null || parentsPhone===null || emergencyPhone===null || !address || !paymentMode || !paymentDate || !amountPaid || hostelBlockId===null || cotId===null){
             return res.status(404).json({
@@ -398,10 +398,10 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        if(!image || !hostelFeeReceipt){
+        if(!image || !hostelFeeReceipt || !instituteFeeReceipt){
             return res.status(404).json({
                 success:false,
-                message:"File Missing",
+                message:"Required file(s) missing!",
             })
         }
 
@@ -467,25 +467,25 @@ exports.createStudentAccount = async(req,res) => {
         }
 
         // FOR OPTIONAL INSTITUTE FEE RECEIPT
-        let uploadedInstituteFeeReceipt = null;
-        if(instituteFeeReceipt){
-            uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
-            if(!uploadedInstituteFeeReceipt){
-                return res.status(400).json({
-                    success:false,
-                    message:"Institite Fee Receipt Upload Failed",
-                })
-            }
-        }
+        // let uploadedInstituteFeeReceipt = null;
+        // if(instituteFeeReceipt){
+        //     uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        //     if(!uploadedInstituteFeeReceipt){
+        //         return res.status(400).json({
+        //             success:false,
+        //             message:"Institite Fee Receipt Upload Failed",
+        //         })
+        //     }
+        // }
 
         // FOR COMPULSORY INSTITUTE FEE RECEIPT
-        // const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
-        // if(!uploadedInstituteFeeReceipt){
-        //     return res.status(400).json({
-        //         success:false,
-        //         message:"Institite Fee Receipt Upload Failed",
-        //     })
-        // }
+        const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        if(!uploadedInstituteFeeReceipt){
+            return res.status(400).json({
+                success:false,
+                message:"Institite Fee Receipt Upload Failed",
+            })
+        }
 
         // const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
         const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
@@ -513,8 +513,8 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
-        // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
 
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
 
