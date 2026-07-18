@@ -54,7 +54,7 @@ exports.fixDocLogin = async (req, res) => {
         if (!isAffected) {
             return res.status(403).json({
                 success: false,
-                message: "Your account is not eligible for this correction.",
+                message: "Currently, no discrepancy has been detected in your documents.",
             });
         }
 
