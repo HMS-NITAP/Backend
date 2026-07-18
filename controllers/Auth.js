@@ -490,7 +490,7 @@ exports.createStudentAccount = async(req,res) => {
         // FOR OPTIONAL INSTITUTE FEE RECEIPT
         // let uploadedInstituteFeeReceipt = null;
         // if(instituteFeeReceipt){
-        //     uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        //     uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_INSTITUTE_FEE_RECEIPTS, rollNo);
         //     if(!uploadedInstituteFeeReceipt){
         //         return res.status(400).json({
         //             success:false,
@@ -500,7 +500,7 @@ exports.createStudentAccount = async(req,res) => {
         // }
 
         // FOR COMPULSORY INSTITUTE FEE RECEIPT
-        const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_INSTITUTE_FEE_RECEIPTS, rollNo);
         if(!uploadedInstituteFeeReceipt){
             return res.status(400).json({
                 success:false,
@@ -509,7 +509,7 @@ exports.createStudentAccount = async(req,res) => {
         }
 
         // const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
-        const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_HOSTEL_FEE_RECEIPTS, rollNo);
         if(!uploadedHostelFeeReceipt){
             return res.status(400).json({
                 success:false,

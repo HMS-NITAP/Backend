@@ -423,7 +423,7 @@ exports.getStudentDashboardData = async(req,res) => {
         }
 
         const studentDetails = await Prisma.instituteStudent.findFirst({where:{userId:id}, include:{hostelBlock:true,messHall:true,cot:{include:{room:true}},user:{select:{status:true}}}});
-        
+
         if(!studentDetails){
             return res.status(404).json({
                 success:false,
@@ -681,7 +681,7 @@ exports.addEvenSemFeeReceipt = async(req,res) => {
         }
 
         // const uploadedFile = await UploadMedia(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_IMAGES);
-        const uploadedFile = await uploadMediaToS3(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS,studentDetails?.rollNo);
+        const uploadedFile = await uploadMediaToS3(evenSemHostelFeeReceipt,process.env.FOLDER_NAME_HOSTEL_FEE_RECEIPTS,studentDetails?.rollNo);
         if(!uploadedFile){
             return res.status(403).json({
                 success:false,
