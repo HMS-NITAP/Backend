@@ -11,9 +11,23 @@ const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 app.use(cookieParser());
+
+const defaultAllowedOrigins = [
+    "https://www.nitandhrahms.in",
+    "http://localhost:5173",
+];
+const allowedOrigins = (process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : defaultAllowedOrigins);
+
 app.use(
     cors({
-        origin : "*",
+        origin : (origin, callback) => {
+            if(origin && allowedOrigins.includes(origin)){
+                return callback(null, true);
+            }
+            return callback(new Error("Not allowed by CORS"));
+        },
         credentials:true,
     })
 )
@@ -35,6 +49,3 @@ app.get("/",(_,res) => {
 app.listen(PORT,() => {
     console.log(`App is Running at PORT ${PORT}`);
 });
-
-
-
