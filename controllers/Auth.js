@@ -40,6 +40,16 @@ exports.sendOTP = async (req,res) => {
             });
         }
 
+        if(year != 1){
+            const expectedEmail = `${rollNo}@student.nitandhra.ac.in`;
+            if(email.trim().toLowerCase() !== expectedEmail.toLowerCase()){
+                return res.status(402).json({
+                    success:false,
+                    message:"Use your Institute Email ID for Registration",
+                })
+            }
+        }
+
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
         if(isEmailExistsAlready){
             return res.status(400).json({
@@ -420,20 +430,6 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        if(!email.trim().endsWith("@student.nitandhra.ac.in") && year !== "1"){
-            return res.status(402).json({
-                success:false,
-                message:"Use Institute Email ID for Registration",
-            })
-        }
-
-        // if(!email.trim().endsWith("@student.nitandhra.ac.in")){
-        //     return res.status(402).json({
-        //         success:false,
-        //         message:"Use Institute Email ID for Registration",
-        //     })
-        // }
-
         // HERE MANAGE FOR 1st Year Students
         const allowedRolls = yearWiseStudentList[year];
         if((year != 1) && (!allowedRolls || !allowedRolls.includes(rollNo))){
@@ -442,6 +438,23 @@ exports.createStudentAccount = async(req,res) => {
                 message: "You have selected invalid year of study, select your current year of study",
             });
         }
+
+        if(year !== "1"){
+            const expectedEmail = `${rollNo}@student.nitandhra.ac.in`;
+            if(email.trim().toLowerCase() !== expectedEmail.toLowerCase()){
+                return res.status(402).json({
+                    success:false,
+                    message:"Use your Institute Email ID for Registration",
+                })
+            }
+        }
+
+        // if(!email.trim().endsWith("@student.nitandhra.ac.in")){
+        //     return res.status(402).json({
+        //         success:false,
+        //         message:"Use Institute Email ID for Registration",
+        //     })
+        // }
 
         const ifUserExistsAlready = await Prisma.user.findFirst({where : {email}});
         if(ifUserExistsAlready){
