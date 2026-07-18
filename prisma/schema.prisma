@@ -120,6 +120,17 @@ model User {
   // worker                  Worker?
   // security                Security?
   official                Official?
+  fixCorruptDoc           FixCorruptDoc?
+}
+
+model FixCorruptDoc {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id])
+  isFixed   Boolean  @default(false)
+  token     String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  updatedAt DateTime @updatedAt
 }
 
 model OTP {
