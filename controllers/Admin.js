@@ -126,7 +126,7 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
         let {removeWardenId,hostelBlockId} = req.body;
         removeWardenId = parseInt(removeWardenId);
         hostelBlockId = parseInt(hostelBlockId);
-        
+
         if(!removeWardenId || !hostelBlockId){
             return res.status(404).json({
                 success:false,
@@ -242,7 +242,7 @@ exports.createOfficialAccount = async(req,res) => {
         }
 
         await Prisma.official.create({data : {name,designation,gender,phone,userId:user?.id}});
-        
+
         return res.status(200).json({
             success:true,
             message:"Account created Successfully",
@@ -337,7 +337,7 @@ exports.fetchRegistrationApplications = async(_,res) => {
                         },
                         hostelBlock : true,
                     }
-                }   
+                }
             }
         })
 
@@ -400,7 +400,7 @@ exports.acceptRegistrationApplication = async(req,res) => {
         const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
         await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
         await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
-        
+
         try{
             let date = new Date();
             date = date.toLocaleDateString();
@@ -716,7 +716,7 @@ exports.fetchFreezedApplications = async(_,res) => {
                         },
                         hostelBlock : true,
                     }
-                }   
+                }
             }
         })
 
@@ -771,22 +771,22 @@ exports.getDashboardData = async (_, res) => {
           },
         },
       });
-  
+
       let overallAvailableCots = 0;
       let overallBookedCots = 0;
       let overallBlockedCots = 0;
-  
+
       const formattedResult = result.map((block) => {
         const totalRooms = block.rooms.length;
         const totalCots = block.rooms.reduce((acc, room) => acc + room.cots.length, 0);
         const bookedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BOOKED').length, 0);
         const blockedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BLOCKED').length, 0);
         const availableCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'AVAILABLE').length, 0);
-  
+
         overallAvailableCots += availableCots;
         overallBookedCots += bookedCots;
         overallBlockedCots += blockedCots;
-  
+
         return {
           blockId: block.id,
           blockName: block.name,
@@ -798,7 +798,7 @@ exports.getDashboardData = async (_, res) => {
           availableCots,
         };
       });
-  
+
       const activeStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
@@ -808,22 +808,22 @@ exports.getDashboardData = async (_, res) => {
           ],
         },
       });
-      
-  
+
+
       const inactiveStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
           status: 'INACTIVE',
         },
       });
-  
+
       const freezedStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
           status: 'FREEZED',
         },
       });
-  
+
       return res.status(200).json({
         success: true,
         message: "Fetched Data Successfully",
@@ -920,7 +920,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         })
     }
 }
-  
+
 exports.fetchRoomsInHostelBlock = async(req,res) => {
     try{
         const {hostelBlockId} = req.body;
@@ -973,7 +973,7 @@ exports.fetchCotsInRooms = async(req,res) => {
               },
             },
         });
-          
+
         if(!roomDetails){
             return res.status(404).json({
                 success:false,
@@ -1036,7 +1036,7 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
             success:false,
             message:"unable to Fetch Student",
         })
-    } 
+    }
 }
 
 exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
@@ -1121,7 +1121,7 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
 
         const emailBody = `<p>Please find the attached .xlsx file containing the student details ${hostelBlockData?.name} Hall of Residence.</p>`;
 
-        await SendEmail("hmsnitap@gmail.com", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
+        await SendEmail("hosteloffice@nitandhra.ac.in", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
 
         fs.unlinkSync(filePath);
 
@@ -1183,7 +1183,7 @@ exports.deleteStudentAccount = async(req,res) => {
         try{
             await Prisma.studentMessRecords.delete({where : {studentId : userDetails?.instituteStudent?.id}});
         }catch(e){}
-        
+
         try{
             await Prisma.cot.update({where : {id : userDetails?.instituteStudent?.cotId}, data : {status : "AVAILABLE"}});
         }catch(e){}
@@ -1297,14 +1297,14 @@ exports.fetchCotsForChangeCotOption = async(req,res) => {
               id: 'asc',
             },
           });
-          
+
 
         return res.status(200).json({
             success:true,
             message:"Fetched Data",
             data:requiredData,
         })
-                    
+
     }catch(e){
         console.log(e);
         return res.status(400).json({
@@ -1357,19 +1357,19 @@ exports.swapOrExchangeCot = async(req,res) => {
             await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data: {cot: {disconnect: true}}});
             await Prisma.instituteStudent.update({where : {id : changeToCotDetails?.student?.id}, data : {cotId : currentCotId, hostelBlockId:currentCotDetails?.room?.hostelBlockId}});
             await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data : {cotId : changeToCotId, hostelBlockId:changeToCotDetails?.room?.hostelBlockId}});
-        
+
         }else{
             return res.status(402).json({
                 success:false,
                 message:"Invalid Operation",
             })
         }
-        
+
         return res.status(200).json({
             success:true,
             message:"Changed Cot Successfully",
         })
-        
+
     }catch(e){
         console.log(e);
         return res.status(400).json({
@@ -1401,7 +1401,7 @@ exports.fetchEvenSemRegistrationApplications = async(_,res) => {
                 },
               },
             },
-        });  
+        });
 
         return res.status(200).json({
             success:true,
@@ -1453,7 +1453,7 @@ exports.acceptEvenSemRegistrationApplication = async(req,res) => {
 
         await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
         const cotDetails = await Prisma.cot.findUnique({where : {id : studentDetails?.cotId},include:{room : true}});
-        
+
         try{
             let date = new Date();
             date = date.toLocaleDateString();
@@ -1752,7 +1752,7 @@ exports.downloadAllStudentDetailsXlsxFile = async (_, res) => {
             { wch: 20 },
             { wch: 10 },
         ];
-        
+
         XLSX.utils.book_append_sheet(workbook, worksheet, 'AllStudents');
 
         const fileName = `All_Student_Details_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -1760,12 +1760,12 @@ exports.downloadAllStudentDetailsXlsxFile = async (_, res) => {
         XLSX.writeFile(workbook, filePath);
 
         const emailBody = `<p>Dear Admin,</p><p>Please find the attached .xlsx file containing the details of all students registered in the HMS portal.</p><p>This is an auto-generated email.</p>`;
-        
+
         await SendEmail(
-            "hmsnitap@gmail.com", 
-            "All Student Details Report | HMS NIT AP", 
-            emailBody, 
-            filePath, 
+            "hosteloffice@nitandhra.ac.in",
+            "All Student Details Report | HMS NIT AP",
+            emailBody,
+            filePath,
             fileName
         );
 
@@ -1803,7 +1803,7 @@ exports.editStudentAccount = async (req, res) => {
                 message: "Invalid Student ID provided.",
             });
         }
-        
+
         const existingStudent = await Prisma.instituteStudent.findUnique({
             where: { id: parsedStudentId },
         });
@@ -1827,7 +1827,7 @@ exports.editStudentAccount = async (req, res) => {
             emergencyPhone,
             address,
         };
-        
+
         await Prisma.instituteStudent.update({
             where: { id: parsedStudentId },
             data: updateData,
@@ -1945,7 +1945,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message: "Student ID is missing",
             });
         }
-        
+
         studentId = parseInt(studentId);
         cotId = parseInt(cotId);
         let studentDetails = await Prisma.instituteStudent.findUnique({where : {id: studentId}});
@@ -1963,7 +1963,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message: "Cot not available for allotment",
             });
         }
-        
+
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BOOKED"}});
         studentDetails = await Prisma.instituteStudent.update({
             where: { id: studentId },
@@ -1981,9 +1981,9 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 }
             },
             include: {
-                hostelBlock: true,   
-                cot: true,        
-                user: true         
+                hostelBlock: true,
+                cot: true,
+                user: true
             }
         });
 
@@ -2014,7 +2014,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message:"Error Generating Allotment Letter",
             });
         };
-        
+
         return res.status(200).json({
             success: true,
             message: "Room allotted successfully and acknowledgement letter generated.",

@@ -1,7 +1,7 @@
 const passwordUpdated = (email) => {
 	return `<!DOCTYPE html>
     <html>
-    
+
     <head>
         <meta charset="UTF-8">
         <title>Password Update Confirmation</title>
@@ -22,29 +22,29 @@ const passwordUpdated = (email) => {
                 padding: 20px;
                 text-align: center;
             }
-    
+
             .logo {
                 max-width: 200px;
                 margin-bottom: 20px;
             }
-    
+
             .message {
                 font-size: 18px;
                 font-weight: bold;
                 margin-bottom: 20px;
             }
-    
+
             .body {
                 font-size: 16px;
                 margin-bottom: 20px;
             }
-    
+
             .support {
                 font-size: 14px;
                 color: #999999;
                 margin-top: 20px;
             }
-    
+
             .highlight {
                 font-weight: bold;
             }
@@ -55,9 +55,9 @@ const passwordUpdated = (email) => {
                 margin-bottom:30px;
             }
         </style>
-    
+
     </head>
-    
+
     <body>
         <div class="container">
         <a href="https://www.nitandhra.ac.in/main/"><img class="logo"
@@ -69,11 +69,11 @@ const passwordUpdated = (email) => {
                 <p>If you did not request this password change, please contact us immediately to secure your account.</p>
             </div>
             <div class="support">If you have any questions or need further assistance, please reach out to us at
-                <a href="mailto:hmsnitap@gmail.com">hmsnitap@gmail.com</a>. We are here to help!
+                <a href="mailto:nitandhrahms@gmail.com">nitandhrahms@gmail.com</a>. We are here to help!
             </div>
         </div>
     </body>
-    
+
     </html>`;
 };
 
