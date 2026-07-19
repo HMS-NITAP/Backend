@@ -3,7 +3,7 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const SendEmail = require("../utilities/MailSender")
 const emailVerification = require('../mailTemplates/emailVerification');
-// const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
+const passwordUpdated = require('../mailTemplates/passwordUpdate');
 const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
 // const {UploadMedia} = require('../utilities/MediaUploader')
@@ -253,13 +253,18 @@ exports.changePassword = async(req,res) => {
         const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
 
         try{
-            await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
+            await SendEmailProxy(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
         }catch(e){
             return res.status(400).json({
                 success:false,
                 message:"Error sending Updated Password Email",
             });
         }
+
+        return res.status(200).json({
+            success:true,
+            message:"Password Changed Successfully",
+        })
     }catch(e){
         return res.status(400).json({
             success:false,
