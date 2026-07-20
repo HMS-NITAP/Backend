@@ -13,6 +13,6 @@ router.use("/official",officialRoutes);
 router.use("/student",studentRoutes);
 router.use("/admin",adminRoutes);
 router.use("/common",commonRoutes);
-router.use("/fix-corrupt-docs",fixCorruptDocsRoutes);
+router.use("/reupload-fee-receipt",fixCorruptDocsRoutes);
 
 module.exports = router;

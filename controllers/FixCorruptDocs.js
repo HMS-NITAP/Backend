@@ -46,7 +46,8 @@ exports.fixDocLogin = async (req, res) => {
         if (existing?.isFixed) {
             return res.status(403).json({
                 success: false,
-                message: "Your document has already been updated. Please contact the hostel office if you need further changes.",
+                code: "ALREADY_UPDATED",
+                message: "Your Institute Fee Receipt has already been re-uploaded. Please contact the hostel office if you need further changes.",
             });
         }
 
@@ -54,7 +55,8 @@ exports.fixDocLogin = async (req, res) => {
         if (!isAffected) {
             return res.status(403).json({
                 success: false,
-                message: "Currently, no discrepancy has been detected in your documents.",
+                code: "NO_ACTION_NEEDED",
+                message: "Your Institute Fee Receipt is already correctly uploaded. No further action is required.",
             });
         }
 
