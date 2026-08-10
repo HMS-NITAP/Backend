@@ -1039,6 +1039,207 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
     }
 }
 
+const STUDENT_LIST_MAX_PAGE_SIZE = 200;
+const STUDENT_LIST_DEFAULT_PAGE_SIZE = 25;
+const BRANCH_VALUES = ["CSE","ECE","EEE","MECH","CIVIL","BIOTECH","CHEM","MME"];
+
+const STUDENT_LIST_SELECT = {
+    id: true,
+    name: true,
+    rollNo: true,
+    regNo: true,
+    year: true,
+    branch: true,
+    gender: true,
+    user: { select: { status: true } },
+    hostelBlock: { select: { id: true, name: true } },
+    cot: { select: { cotNo: true, room: { select: { roomNumber: true, floorNumber: true } } } },
+};
+
+const STUDENT_EXPORT_INCLUDE = {
+    user: { select: { email: true, status: true } },
+    hostelBlock: { select: { id: true, name: true } },
+    cot: { include: { room: true } },
+};
+
+const STUDENT_LIST_ORDER_BY = [
+    { hostelBlock: { name: 'asc' } },
+    { rollNo: 'asc' },
+];
+
+// Shared by the paginated list and the xlsx export so both always agree on what "matches the filters" means.
+const buildStudentListFilters = ({ year, branch, hostelBlockId, floorNumber, search }) => {
+    const where = {};
+
+    if(year){
+        where.year = String(year);
+    }
+
+    if(branch){
+        if(!BRANCH_VALUES.includes(branch)){
+            throw new Error(`Invalid branch: ${branch}`);
+        }
+        where.branch = branch;
+    }
+
+    if(hostelBlockId){
+        const parsedHostelBlockId = parseInt(hostelBlockId);
+        if(isNaN(parsedHostelBlockId)){
+            throw new Error(`Invalid hostel block: ${hostelBlockId}`);
+        }
+        where.hostelBlockId = parsedHostelBlockId;
+    }
+
+    if(floorNumber !== undefined && floorNumber !== null && floorNumber !== ""){
+        const parsedFloorNumber = parseInt(floorNumber);
+        if(isNaN(parsedFloorNumber)){
+            throw new Error(`Invalid floor: ${floorNumber}`);
+        }
+        where.cot = { room: { floorNumber: parsedFloorNumber } };
+    }
+
+    const trimmedSearch = typeof search === "string" ? search.trim() : "";
+    if(trimmedSearch){
+        where.OR = [
+            { name: { contains: trimmedSearch, mode: "insensitive" } },
+            { rollNo: { contains: trimmedSearch, mode: "insensitive" } },
+            { regNo: { contains: trimmedSearch, mode: "insensitive" } },
+        ];
+    }
+
+    return where;
+};
+
+const parsePagination = ({ page, limit }) => {
+    const parsedPage = Math.max(parseInt(page) || 1, 1);
+    const parsedLimit = Math.min(Math.max(parseInt(limit) || STUDENT_LIST_DEFAULT_PAGE_SIZE, 1), STUDENT_LIST_MAX_PAGE_SIZE);
+    return { parsedPage, parsedLimit };
+};
+
+const mapStudentToExportRow = (student) => ({
+    Name: student.name,
+    Roll_Number: student.rollNo,
+    Registration_Number: student.regNo,
+    Email: student.user?.email ?? 'N/A',
+    Year: student.year,
+    Branch: student.branch,
+    Gender: student.gender,
+    Block_Name: student.hostelBlock?.name ?? 'N/A',
+    Floor_Number: student.cot?.room?.floorNumber ?? 'N/A',
+    Room_Number: student.cot?.room?.roomNumber ?? 'N/A',
+    Cot_Number: student.cot?.cotNo ?? 'N/A',
+    Community: student.community ?? 'N/A',
+    PWD: student.pwd ? 'Yes' : 'No',
+    Date_Of_Birth: student.dob ?? 'N/A',
+    Blood_Group: student.bloodGroup ?? 'N/A',
+    Aadhaar_Number: student.aadhaarNumber ?? 'N/A',
+    Father_Name: student.fatherName ?? 'N/A',
+    Mother_Name: student.motherName ?? 'N/A',
+    Phone_Number: student.phone ?? 'N/A',
+    Parents_Number: student.parentsPhone ?? 'N/A',
+    Emergency_Number: student.emergencyPhone ?? 'N/A',
+    Address: student.address ?? 'N/A',
+    Amount_Paid: student.amountPaid ?? 'N/A',
+    Date_Of_Joining: student.dateOfJoining ? new Date(student.dateOfJoining).toISOString().split('T')[0] : 'N/A',
+    Account_Status: student.user?.status ?? 'N/A',
+});
+
+exports.fetchAllStudents = async (req, res) => {
+    try{
+        let where;
+        try{
+            where = buildStudentListFilters(req.body);
+        }catch(e){
+            return res.status(400).json({
+                success: false,
+                message: e.message,
+            });
+        }
+
+        const { parsedPage, parsedLimit } = parsePagination(req.body);
+
+        const total = await Prisma.instituteStudent.count({ where });
+        const totalPages = Math.max(Math.ceil(total / parsedLimit), 1);
+        const currentPage = Math.min(parsedPage, totalPages);
+
+        const students = await Prisma.instituteStudent.findMany({
+            where,
+            select: STUDENT_LIST_SELECT,
+            orderBy: STUDENT_LIST_ORDER_BY,
+            skip: (currentPage - 1) * parsedLimit,
+            take: parsedLimit,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Successfully fetched students.",
+            data: {
+                students,
+                total,
+                page: currentPage,
+                limit: parsedLimit,
+                totalPages,
+            },
+        });
+    }catch(e){
+        console.log("ERROR WHILE FETCHING ALL STUDENTS:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to fetch students.",
+        });
+    }
+};
+
+exports.exportStudentsXlsxFile = async (req, res) => {
+    try{
+        let where;
+        try{
+            where = buildStudentListFilters(req.body);
+        }catch(e){
+            return res.status(400).json({
+                success: false,
+                message: e.message,
+            });
+        }
+
+        // scope "page" exports only what the admin currently has on screen, anything else exports every match.
+        const isCurrentPageOnly = req.body?.scope === "page";
+        const { parsedPage, parsedLimit } = parsePagination(req.body);
+
+        const students = await Prisma.instituteStudent.findMany({
+            where,
+            include: STUDENT_EXPORT_INCLUDE,
+            orderBy: STUDENT_LIST_ORDER_BY,
+            ...(isCurrentPageOnly ? { skip: (parsedPage - 1) * parsedLimit, take: parsedLimit } : {}),
+        });
+
+        if(students.length === 0){
+            return res.status(404).json({
+                success: false,
+                message: "No students matched the applied filters.",
+            });
+        }
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(students.map(mapStudentToExportRow));
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const fileName = `Students_${isCurrentPageOnly ? `page_${parsedPage}_` : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        return res.status(200).send(buffer);
+    }catch(e){
+        console.log("ERROR WHILE EXPORTING STUDENTS:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to export students.",
+        });
+    }
+};
+
 exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
     try{
         const { hostelBlockId } = req.body;
