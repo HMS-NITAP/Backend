@@ -1849,12 +1849,20 @@ exports.editStudentAccount = async (req, res) => {
 
 exports.createNewStudentFirstYear = async(req, res) => {
     try{
-        const { rollNo, regNo, name, gender, branch, amountPaid} = req.body;
-        if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid){
-            console.log(rollNo, regNo, name, gender, branch, amountPaid);
+        const { rollNo, regNo, name, gender, branch, amountPaid, dateOfJoining} = req.body;
+        if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid || !dateOfJoining){
+            console.log(rollNo, regNo, name, gender, branch, amountPaid, dateOfJoining);
             return res.status(404).json({
                 success: false,
                 message: "Required data is missing",
+            });
+        }
+
+        const parsedDateOfJoining = new Date(dateOfJoining);
+        if(isNaN(parsedDateOfJoining.getTime())){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Date of Joining provided",
             });
         }
 
@@ -1883,7 +1891,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
             })
         }
         console.log("TERE");
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,outingRating:5.0,disciplineRating:5.0,userId}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
         console.log("TERE1");
         return res.status(200).json({
             success: true,
