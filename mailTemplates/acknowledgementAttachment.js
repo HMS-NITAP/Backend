@@ -15,14 +15,14 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     margin: 0;
                     padding: 0;
                 }
-        
+
                 .container {
                     max-width: 1180px;
                     margin: 0 auto;
                     padding: 20px;
                     text-align: center;
                 }
-        
+
                 .logo {
                     max-width: 125px;
                 }
@@ -40,7 +40,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     align-items: center;
                     gap: 10px;
                 }
-                
+
                 .main {
                     display: flex;
                     flex-direction: column;
@@ -51,18 +51,18 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     font-size: 22px;
                     font-weight: 700;
                 }
-        
+
                 .message {
                     font-size: 16px;
                     font-weight: bold;
                     margin-bottom: 10px;
                 }
-        
+
                 .body {
                     font-size: 16px;
                     margin-bottom: 10px;
                 }
-        
+
                 .Acknowledgement {
                     font-weight: bold;
                 }
@@ -91,11 +91,11 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     width: 90%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 10px;
                     margin-top: 20px;
-                    margin-bottom: 20px; 
+                    margin-bottom: 20px;
                 }
 
                 .grid-item {
@@ -111,15 +111,49 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     width: 90%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 10px;
                     margin-top: 40px;
-                    margin-bottom: 20px; 
+                    margin-bottom: 20px;
+                }
+
+                .joining-container {
+                    width: 90%;
+                    margin: auto;
+                    text-align: left;
+                    color: #000;
+                    margin-top: 10px;
+                    margin-bottom: 20px;
+                }
+
+                .joining-field {
+                    font-size: 16px;
+                    font-weight: 700;
+                    margin-bottom: 14px;
+                }
+
+                .joining-note {
+                    font-size: 15px;
+                    font-weight: 500;
+                }
+
+                /* Blank rules for the caretaker to fill in by hand on the printed copy. */
+                .write-space {
+                    display: inline-block;
+                    width: 240px;
+                    border-bottom: 1px solid #000;
+                }
+
+                /* Narrower so the sentence and its blank stay on one line. */
+                .write-space-inline {
+                    display: inline-block;
+                    width: 170px;
+                    border-bottom: 1px solid #000;
                 }
 
             </style>
-        
+
         </head>
         <body>
             <div class="container">
@@ -180,6 +214,11 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                         <p>Cot No : ${cotNo}</p>
                         <p>Floor No : ${floor}</p>
                     </div>
+                </div>
+
+                <div class="joining-container">
+                    <p class="joining-field">Date of Joining : <span class="write-space"></span></p>
+                    <p class="joining-note">This is to confirm that the student has joined the hostel on the date of <span class="write-space-inline"></span>.</p>
                 </div>
 
                 <div class="sign-container">
