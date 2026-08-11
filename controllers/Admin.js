@@ -2093,7 +2093,7 @@ exports.editStudentAccount = async (req, res) => {
 
 exports.createNewStudentFirstYear = async(req, res) => {
     try{
-        const { regNo, name, gender, branch, amountPaid, dateOfJoining } = req.body;
+        const { regNo, name, gender, branch, amountPaid, dateOfJoining, pwd } = req.body;
 
         // First years are often admitted before roll numbers are issued, so rollNo is optional.
         const rollNo = typeof req.body.rollNo === "string" && req.body.rollNo.trim() ? req.body.rollNo.trim() : null;
@@ -2104,6 +2104,15 @@ exports.createNewStudentFirstYear = async(req, res) => {
                 message: "Required data is missing",
             });
         }
+
+        const normalizedPwd = String(pwd ?? "").trim().toLowerCase();
+        if(!["true", "false"].includes(normalizedPwd)){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid PWD status provided",
+            });
+        }
+        const pwdStatus = normalizedPwd === "true";
 
         if(!/^[0-9]+$/.test(String(regNo).trim())){
             return res.status(400).json({
@@ -2172,7 +2181,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
                 message:"User ID Not Found",
             })
         }
-        await Prisma.instituteStudent.create({data : {regNo:trimmedRegNo,rollNo,name,year: "1",branch,gender,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
+        await Prisma.instituteStudent.create({data : {regNo:trimmedRegNo,rollNo,name,year: "1",branch,gender,pwd:pwdStatus,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
         return res.status(200).json({
             success: true,
             message: "New student account created successfully.",
