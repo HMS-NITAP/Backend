@@ -182,7 +182,7 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                 <div class="heading">Student Details :</div>
                 <div class="grid-container">
                     <div class="grid-item">
-                        <img class="logo" src=${image} alt="Student Image">
+                        <img class="logo" src="${image}" alt="Student Image">
                     </div>
 
                     <div class="grid-item">

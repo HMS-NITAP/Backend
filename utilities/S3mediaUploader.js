@@ -2,8 +2,8 @@ const s3Client = require('../config/s3');
 const fs = require('fs');
 const path = require('path');
 const { PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { invalidateSignedUrl } = require('./S3SignedUrl');
 
-// TODO: Migrate to signed URLs
 const buildS3ObjectUrl = (key) =>
   `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
@@ -42,6 +42,7 @@ exports.uploadMediaToS3 = async (file, folder = 'extras', filename = null, heigh
     });
 
     await s3Client.send(command);
+    invalidateSignedUrl(finalFileName);
     const url = buildS3ObjectUrl(finalFileName);
 
     return {

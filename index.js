@@ -4,6 +4,7 @@ const cors = require("cors");
 const fileUpload = require('express-fileupload');
 const cookieParser = require('cookie-parser');
 const routes = require('./routes');
+const { signS3UrlsInResponses } = require('./middlewares/signedUrls');
 const PORT = process.env.PORT || 4000;
 
 // const {cloudinaryConnect} = require('./config/cloudinary');
@@ -36,6 +37,8 @@ app.use(fileUpload({
     useTempFiles : true,
     tempFileDir : '/tmp/'
 }));
+
+app.use(signS3UrlsInResponses);
 
 app.use("/api/v1",routes);
 

@@ -2494,7 +2494,7 @@ const serveStudentDocument = async (req, res, document) => {
         return res.status(200).json({
             success: true,
             message: `${label} generated.`,
-            data: regenerate ? `${generatedUrl}?v=${Date.now()}` : generatedUrl,
+            data: generatedUrl,
         });
     }catch(e){
         console.log(`ERROR WHILE FETCHING ${label.toUpperCase()}:`, e);

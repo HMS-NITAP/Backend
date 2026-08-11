@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
+const { signS3UrlsInHtml } = require("./S3SignedUrl");
 
 const PdfGenerator = async (htmlContent, filename, pdfOptions = {}) => {
     try {
@@ -17,7 +18,9 @@ const PdfGenerator = async (htmlContent, filename, pdfOptions = {}) => {
         const page = await browser.newPage();
         await page.setDefaultNavigationTimeout(60000);
 
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        const signedHtml = await signS3UrlsInHtml(htmlContent);
+
+        await page.setContent(signedHtml, { waitUntil: 'networkidle0' });
 
         // Generate PDF
         const pdfPath = path.join(__dirname, filename);
