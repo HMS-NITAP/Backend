@@ -27,6 +27,11 @@ const messIdCardAttachment = ({ serialNo, image, name, rollNo, course, branch, c
                     margin-bottom: 28px;
                 }
 
+                * {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
                 .card-header {
                     background-color: #c0392b;
                     color: #ffffff;

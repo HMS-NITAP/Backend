@@ -21,7 +21,7 @@ const PdfGenerator = async (htmlContent, filename) => {
 
         // Generate PDF
         const pdfPath = path.join(__dirname, filename);
-        await page.pdf({ path: pdfPath, format: 'A4' });
+        await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
         console.log("PDF generated");
 
         await browser.close();
