@@ -86,8 +86,16 @@ exports.fetchHostelBlockRooms = async(req,res) => {
                     cotNo : "asc",
                 }
               }
-            }
-        }); 
+            },
+            orderBy:[
+                {
+                    floorNumber : "asc",
+                },
+                {
+                    roomNumber : "asc",
+                }
+            ]
+        });
 
         return res.status(200).json({
             success:true,
