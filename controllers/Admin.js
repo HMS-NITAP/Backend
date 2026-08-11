@@ -2415,7 +2415,7 @@ const generateAndUploadAllotmentLetter = (student) => generateAndUploadDocument(
 }));
 
 const generateAndUploadMessIdCard = (student) => {
-    const fileName = `${letterIdentifier(student)}-mess-card`;
+    const fileName = `${letterIdentifier(student)}`;
     return generateAndUploadDocument(fileName, () => buildAndStoreStudentDocument(student, {
         html: renderMessIdCardHtml(student),
         fileName,
