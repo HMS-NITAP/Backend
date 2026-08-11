@@ -2370,11 +2370,11 @@ const renderMessIdCardHtml = (student) => messIdCardAttachment({
 let letterGenerationQueue = Promise.resolve();
 const inFlightLetterGenerations = new Map();
 
-const buildAndStoreStudentDocument = async (student, { html, fileName, field }) => {
+const buildAndStoreStudentDocument = async (student, { html, folder, fileName, field }) => {
     const pdfPath = await PdfGenerator(html, `${fileName}.pdf`);
     try{
         const dummyFile = { tempFilePath: pdfPath, name: `${fileName}.pdf`, mimetype: "application/pdf" };
-        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, fileName);
+        const uploadedPdf = await uploadMediaToS3(dummyFile, folder, fileName);
         if(!uploadedPdf?.success){
             throw new Error(uploadedPdf?.message || "S3 upload failed");
         }
@@ -2408,24 +2408,35 @@ const generateAndUploadDocument = (key, build) => {
     return tracked;
 };
 
-const generateAndUploadAllotmentLetter = (student) => generateAndUploadDocument(letterIdentifier(student), () => buildAndStoreStudentDocument(student, {
-    html: renderAllotmentLetterHtml(student, new Date().toLocaleDateString()),
-    fileName: letterIdentifier(student),
+const allotmentLetterDocument = {
     field: "allotmentLetterUrl",
-}));
+    label: "Allotment letter",
+    folder: () => process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS,
+    render: (student) => renderAllotmentLetterHtml(student, new Date().toLocaleDateString()),
+};
 
-const generateAndUploadMessIdCard = (student) => {
-    const fileName = `${letterIdentifier(student)}`;
-    return generateAndUploadDocument(fileName, () => buildAndStoreStudentDocument(student, {
-        html: renderMessIdCardHtml(student),
+const messIdCardDocument = {
+    field: "messCardUrl",
+    label: "Mess ID card",
+    folder: () => process.env.FOLDER_NAME_MESS_ID_CARDS || "mess-id-cards",
+    render: renderMessIdCardHtml,
+};
+
+const generateStudentDocument = (student, document) => {
+    const folder = document.folder();
+    const fileName = letterIdentifier(student);
+    return generateAndUploadDocument(`${folder}/${fileName}`, () => buildAndStoreStudentDocument(student, {
+        html: document.render(student),
+        folder,
         fileName,
-        field: "messCardUrl",
+        field: document.field,
     }));
 };
 
-const serveStudentDocument = async (req, res, { field, label, generate }) => {
+const serveStudentDocument = async (req, res, document) => {
+    const { field, label } = document;
     try{
-        const { studentId } = req.body;
+        const { studentId, regenerate } = req.body;
         if(!studentId){
             return res.status(400).json({
                 success: false,
@@ -2453,7 +2464,7 @@ const serveStudentDocument = async (req, res, { field, label, generate }) => {
             });
         }
 
-        if(studentDetails[field]){
+        if(!regenerate && studentDetails[field]){
             return res.status(200).json({
                 success: true,
                 message: `${label} located.`,
@@ -2468,7 +2479,7 @@ const serveStudentDocument = async (req, res, { field, label, generate }) => {
             });
         }
 
-        const generatedUrl = await generate(studentDetails);
+        const generatedUrl = await generateStudentDocument(studentDetails, document);
         if(!generatedUrl){
             return res.status(500).json({
                 success: false,
@@ -2479,7 +2490,7 @@ const serveStudentDocument = async (req, res, { field, label, generate }) => {
         return res.status(200).json({
             success: true,
             message: `${label} generated.`,
-            data: generatedUrl,
+            data: regenerate ? `${generatedUrl}?v=${Date.now()}` : generatedUrl,
         });
     }catch(e){
         console.log(`ERROR WHILE FETCHING ${label.toUpperCase()}:`, e);
@@ -2490,14 +2501,6 @@ const serveStudentDocument = async (req, res, { field, label, generate }) => {
     }
 };
 
-exports.fetchStudentAllotmentLetter = (req, res) => serveStudentDocument(req, res, {
-    field: "allotmentLetterUrl",
-    label: "Allotment letter",
-    generate: generateAndUploadAllotmentLetter,
-});
+exports.fetchStudentAllotmentLetter = (req, res) => serveStudentDocument(req, res, allotmentLetterDocument);
 
-exports.fetchStudentMessIdCard = (req, res) => serveStudentDocument(req, res, {
-    field: "messCardUrl",
-    label: "Mess ID card",
-    generate: generateAndUploadMessIdCard,
-});
+exports.fetchStudentMessIdCard = (req, res) => serveStudentDocument(req, res, messIdCardDocument);
