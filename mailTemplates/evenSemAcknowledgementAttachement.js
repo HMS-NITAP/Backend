@@ -15,14 +15,14 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     margin: 0;
                     padding: 0;
                 }
-        
+
                 .container {
                     max-width: 1180px;
                     margin: 0 auto;
                     padding: 20px;
                     text-align: center;
                 }
-        
+
                 .logo {
                     max-width: 125px;
                 }
@@ -40,7 +40,7 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     align-items: center;
                     gap: 10px;
                 }
-                
+
                 .main {
                     display: flex;
                     flex-direction: column;
@@ -51,18 +51,18 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     font-size: 22px;
                     font-weight: 700;
                 }
-        
+
                 .message {
                     font-size: 16px;
                     font-weight: bold;
                     margin-bottom: 10px;
                 }
-        
+
                 .body {
                     font-size: 16px;
                     margin-bottom: 10px;
                 }
-        
+
                 .Acknowledgement {
                     font-weight: bold;
                 }
@@ -91,11 +91,11 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     width: 90%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 10px;
                     margin-top: 20px;
-                    margin-bottom: 20px; 
+                    margin-bottom: 20px;
                 }
 
                 .grid-item {
@@ -114,7 +114,7 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     grid-template-columns: repeat(3, 1fr);
                     grid-template-rows: 1fr;
                     gap: 10px;
-                    margin-top: 40px;
+                    margin-top: 4rem;
                     margin-bottom: 20px;
                 }
 
@@ -153,7 +153,7 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                 }
 
             </style>
-        
+
         </head>
         <body>
             <div class="container">
