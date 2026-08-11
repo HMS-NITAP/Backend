@@ -8,6 +8,7 @@ const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
 // const {UploadMedia} = require('../utilities/MediaUploader')
 const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
+const { findRegNoConflict, findRollNoConflict, isDigitsOnly, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 
 const { PrismaClient } = require('@prisma/client');
 const { IS_REGISTRATION_ON, yearWiseStudentList } = require("../config/constants");
@@ -466,6 +467,39 @@ exports.createStudentAccount = async(req,res) => {
             return res.status(402).json({
                 success:false,
                 message:"User Already Registered",
+            })
+        }
+
+        // Checked before any of the writes below (image upload, cot booking, account creation) so a
+        // rejected registration leaves nothing behind.
+        if(!isDigitsOnly(regNo)){
+            return res.status(402).json({
+                success:false,
+                message:"Registration Number must contain digits only",
+            })
+        }
+
+        const rollNoFormatError = validateRollNoFormat(rollNo);
+        if(rollNoFormatError){
+            return res.status(402).json({
+                success:false,
+                message:rollNoFormatError,
+            })
+        }
+
+        const regNoConflict = await findRegNoConflict(Prisma, regNo);
+        if(regNoConflict){
+            return res.status(402).json({
+                success:false,
+                message:regNoConflict,
+            })
+        }
+
+        const rollNoConflict = await findRollNoConflict(Prisma, rollNo);
+        if(rollNoConflict){
+            return res.status(402).json({
+                success:false,
+                message:rollNoConflict,
             })
         }
 

@@ -143,8 +143,8 @@ model OTP {
 
 model InstituteStudent {
   id                    Int                   @id @default(autoincrement())
-  regNo                 String                @db.VarChar(255)
-  rollNo                String?                @db.VarChar(255)
+  regNo                 String                @db.VarChar(255) @unique
+  rollNo                String?                @db.VarChar(255) @unique
   name                  String                @db.VarChar(255)
   image                 String?                @db.VarChar(255)
   year                  String                @db.VarChar(255)
@@ -171,6 +171,7 @@ model InstituteStudent {
   paymentDate2          String?               @db.VarChar(255)
   paymentMode2          PaymentMode?
   dateOfJoining         DateTime?             @db.Timestamp(6)
+  allotmentLetterUrl    String?               @db.VarChar(500)
   outingRating          Decimal
   disciplineRating      Decimal
   userId                Int                   @unique

@@ -14,6 +14,7 @@ const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAckno
 const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
 const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
 const { uploadMediaToS3, buildS3ObjectUrl, s3ObjectExists } = require('../utilities/S3mediaUploader');
+const { findRegNoConflict, findRollNoConflict, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
 
 exports.createHostelBlock = async(req,res) => {
@@ -1006,17 +1007,15 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
             })
         }
 
-        let studentDetails;
-
-        if(idNumber.length === 6 || idNumber.length === 7){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {OR : [{rollNo : idNumber},{regNo : idNumber}]}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
-        }else{
+        const trimmedIdNumber = String(idNumber).trim();
+        if(!/^[0-9]+$/.test(trimmedIdNumber)){
             return res.status(402).json({
                 success:false,
                 message:"Invalid ID number",
             })
         }
 
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {OR : [{rollNo : trimmedIdNumber},{regNo : trimmedIdNumber}]}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
         if(!studentDetails){
             return res.status(404).json({
                 success:false,
@@ -2036,6 +2035,30 @@ exports.editStudentAccount = async (req, res) => {
             });
         }
 
+        const editRollNoFormatError = validateRollNoFormat(rollNo);
+        if (editRollNoFormatError) {
+            return res.status(400).json({
+                success: false,
+                message: editRollNoFormatError,
+            });
+        }
+
+        const editRegNoConflict = await findRegNoConflict(Prisma, regNo, parsedStudentId);
+        if (editRegNoConflict) {
+            return res.status(400).json({
+                success: false,
+                message: editRegNoConflict,
+            });
+        }
+
+        const editRollNoConflict = await findRollNoConflict(Prisma, rollNo, parsedStudentId);
+        if (editRollNoConflict) {
+            return res.status(400).json({
+                success: false,
+                message: editRollNoConflict,
+            });
+        }
+
         const updateData = {
             rollNo,
             regNo,
@@ -2070,12 +2093,31 @@ exports.editStudentAccount = async (req, res) => {
 
 exports.createNewStudentFirstYear = async(req, res) => {
     try{
-        const { rollNo, regNo, name, gender, branch, amountPaid, dateOfJoining} = req.body;
-        if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid || !dateOfJoining){
-            console.log(rollNo, regNo, name, gender, branch, amountPaid, dateOfJoining);
-            return res.status(404).json({
+        const { regNo, name, gender, branch, amountPaid, dateOfJoining } = req.body;
+
+        // First years are often admitted before roll numbers are issued, so rollNo is optional.
+        const rollNo = typeof req.body.rollNo === "string" && req.body.rollNo.trim() ? req.body.rollNo.trim() : null;
+
+        if(!regNo || !name || !gender || !branch || !amountPaid || !dateOfJoining){
+            return res.status(400).json({
                 success: false,
                 message: "Required data is missing",
+            });
+        }
+
+        if(!/^[0-9]+$/.test(String(regNo).trim())){
+            return res.status(400).json({
+                success: false,
+                message: "Registration Number must contain digits only",
+            });
+        }
+        const trimmedRegNo = String(regNo).trim();
+
+        const rollNoFormatError = validateRollNoFormat(rollNo);
+        if(rollNoFormatError){
+            return res.status(400).json({
+                success: false,
+                message: rollNoFormatError,
             });
         }
 
@@ -2087,16 +2129,35 @@ exports.createNewStudentFirstYear = async(req, res) => {
             });
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({where: { rollNo: rollNo}});
-        if(studentDetails){
+        const regNoConflict = await findRegNoConflict(Prisma, trimmedRegNo);
+        if(regNoConflict){
             return res.status(400).json({
                 success: false,
-                message: "Student with this Roll Number already exists",
+                message: regNoConflict,
             });
         }
 
-        const hashedPassword = await bcrypt.hash(rollNo,10);
-        const user = await Prisma.user.create({data : {email:`${rollNo}@student.nitandhra.ac.in`,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
+        const rollNoConflict = await findRollNoConflict(Prisma, rollNo);
+        if(rollNoConflict){
+            return res.status(400).json({
+                success: false,
+                message: rollNoConflict,
+            });
+        }
+
+        const loginIdentifier = rollNo || trimmedRegNo;
+        const email = `${loginIdentifier}@student.nitandhra.ac.in`;
+
+        const duplicateEmail = await Prisma.user.findUnique({where : {email}});
+        if(duplicateEmail){
+            return res.status(400).json({
+                success: false,
+                message: `An account already uses ${email}. Provide a different Roll/Registration Number.`,
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(loginIdentifier,10);
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
         if(!user){
             return res.status(401).json({
                 success:false,
@@ -2111,9 +2172,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
                 message:"User ID Not Found",
             })
         }
-        console.log("TERE");
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
-        console.log("TERE1");
+        await Prisma.instituteStudent.create({data : {regNo:trimmedRegNo,rollNo,name,year: "1",branch,gender,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
         return res.status(200).json({
             success: true,
             message: "New student account created successfully.",
@@ -2220,9 +2279,12 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
         try{
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            const dummyFile = { tempFilePath: pdfPath, name: `${studentDetails?.rollNo}.pdf`, mimetype: "application/pdf" };
-            uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, studentDetails?.rollNo);
+
+            // Falls back to the registration number for first years without a roll number yet.
+            const letterName = letterIdentifier(studentDetails);
+            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${letterName}.pdf`);
+            const dummyFile = { tempFilePath: pdfPath, name: `${letterName}.pdf`, mimetype: "application/pdf" };
+            uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, letterName);
             if(!uploadedPdf){
                 return res.status(400).json({
                     success:false,
@@ -2235,6 +2297,10 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                     message: "PDF Upload Failed",
                 });
             }
+            await Prisma.instituteStudent.update({
+                where: { id: studentDetails.id },
+                data: { allotmentLetterUrl: uploadedPdf.url },
+            });
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -2258,6 +2324,10 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
     }
 }
 
+// Admin-created first years may not have a roll number yet, so the registration number stands in
+// as the letter's filename and S3 key.
+const letterIdentifier = (student) => student?.rollNo || student?.regNo;
+
 const renderAllotmentLetterHtml = (student, date) => {
     const room = student.cot?.room;
     if(student.paymentMode2 || student.amountPaid2){
@@ -2274,13 +2344,19 @@ const inFlightLetterGenerations = new Map();
 
 const buildAndStoreAllotmentLetter = async (student) => {
     const date = new Date().toLocaleDateString();
-    const pdfPath = await PdfGenerator(renderAllotmentLetterHtml(student, date), `${student.rollNo}.pdf`);
+    const identifier = letterIdentifier(student);
+    const pdfPath = await PdfGenerator(renderAllotmentLetterHtml(student, date), `${identifier}.pdf`);
     try{
-        const dummyFile = { tempFilePath: pdfPath, name: `${student.rollNo}.pdf`, mimetype: "application/pdf" };
-        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, student.rollNo);
+        const dummyFile = { tempFilePath: pdfPath, name: `${identifier}.pdf`, mimetype: "application/pdf" };
+        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, identifier);
         if(!uploadedPdf?.success){
             throw new Error(uploadedPdf?.message || "S3 upload failed");
         }
+
+        await Prisma.instituteStudent.update({
+            where: { id: student.id },
+            data: { allotmentLetterUrl: uploadedPdf.url },
+        });
         return uploadedPdf.url;
     }finally{
         // Always clear the temp file, even when the upload throws.
@@ -2289,7 +2365,8 @@ const buildAndStoreAllotmentLetter = async (student) => {
 };
 
 const generateAndUploadAllotmentLetter = (student) => {
-    const existing = inFlightLetterGenerations.get(student.rollNo);
+    const identifier = letterIdentifier(student);
+    const existing = inFlightLetterGenerations.get(identifier);
     if(existing) return existing;
 
     const task = letterGenerationQueue.then(() => buildAndStoreAllotmentLetter(student));
@@ -2300,9 +2377,9 @@ const generateAndUploadAllotmentLetter = (student) => {
             console.log("ERROR WHILE GENERATING ALLOTMENT LETTER:", e);
             return null;
         })
-        .finally(() => inFlightLetterGenerations.delete(student.rollNo));
+        .finally(() => inFlightLetterGenerations.delete(identifier));
 
-    inFlightLetterGenerations.set(student.rollNo, tracked);
+    inFlightLetterGenerations.set(identifier, tracked);
     return tracked;
 };
 
@@ -2336,19 +2413,11 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
             });
         }
 
-        if(!studentDetails.rollNo){
-            return res.status(404).json({
-                success: false,
-                message: "Student has no roll number, so no allotment letter exists.",
-            });
-        }
-
-        const letterKey = `${process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS}/${studentDetails.rollNo}.pdf`;
-        if(await s3ObjectExists(letterKey)){
+        if(studentDetails.allotmentLetterUrl){
             return res.status(200).json({
                 success: true,
                 message: "Allotment letter located.",
-                data: buildS3ObjectUrl(letterKey),
+                data: studentDetails.allotmentLetterUrl,
             });
         }
 
