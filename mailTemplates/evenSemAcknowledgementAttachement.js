@@ -114,7 +114,7 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     grid-template-columns: repeat(3, 1fr);
                     grid-template-rows: 1fr;
                     gap: 10px;
-                    margin-top: 4rem;
+                    margin-top: 5rem;
                     margin-bottom: 20px;
                 }
 
