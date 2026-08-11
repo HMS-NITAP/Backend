@@ -429,6 +429,15 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
+        const normalizedPwd = String(pwd ?? "").trim().toLowerCase();
+        if(!["yes", "no"].includes(normalizedPwd)){
+            return res.status(400).json({
+                success:false,
+                message:"Invalid PWD status provided",
+            })
+        }
+        const pwdStatus = normalizedPwd === "yes";
+
         if(password !== confirmPassword){
             return res.status(401).json({
                 success:false,
@@ -574,7 +583,7 @@ exports.createStudentAccount = async(req,res) => {
         }
 
         // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwdStatus,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
 
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
 
