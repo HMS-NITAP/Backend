@@ -1056,7 +1056,13 @@ const STUDENT_LIST_SELECT = {
     cot: { select: { cotNo: true, room: { select: { roomNumber: true, floorNumber: true } } } },
 };
 
-const STUDENT_EXPORT_INCLUDE = {
+const STUDENT_BASIC_EXPORT_SELECT = {
+    ...STUDENT_LIST_SELECT,
+    dateOfJoining: true,
+    user: { select: { email: true, status: true } },
+};
+
+const STUDENT_FULL_EXPORT_INCLUDE = {
     user: { select: { email: true, status: true } },
     hostelBlock: { select: { id: true, name: true } },
     cot: { include: { room: true } },
@@ -1116,7 +1122,7 @@ const parsePagination = ({ page, limit }) => {
     return { parsedPage, parsedLimit };
 };
 
-const mapStudentToExportRow = (student) => ({
+const mapStudentToBasicExportRow = (student) => ({
     Name: student.name,
     Roll_Number: student.rollNo,
     Registration_Number: student.regNo,
@@ -1128,6 +1134,11 @@ const mapStudentToExportRow = (student) => ({
     Floor_Number: student.cot?.room?.floorNumber ?? 'N/A',
     Room_Number: student.cot?.room?.roomNumber ?? 'N/A',
     Cot_Number: student.cot?.cotNo ?? 'N/A',
+    Date_Of_Joining: student.dateOfJoining ? new Date(student.dateOfJoining).toISOString().split('T')[0] : 'N/A',
+    Account_Status: student.user?.status ?? 'N/A',
+});
+
+const mapStudentToSensitiveExportFields = (student) => ({
     Community: student.community ?? 'N/A',
     PWD: student.pwd ? 'Yes' : 'No',
     Date_Of_Birth: student.dob ?? 'N/A',
@@ -1140,8 +1151,11 @@ const mapStudentToExportRow = (student) => ({
     Emergency_Number: student.emergencyPhone ?? 'N/A',
     Address: student.address ?? 'N/A',
     Amount_Paid: student.amountPaid ?? 'N/A',
-    Date_Of_Joining: student.dateOfJoining ? new Date(student.dateOfJoining).toISOString().split('T')[0] : 'N/A',
-    Account_Status: student.user?.status ?? 'N/A',
+});
+
+const mapStudentToExportRow = (student, includeSensitive) => ({
+    ...mapStudentToBasicExportRow(student),
+    ...(includeSensitive ? mapStudentToSensitiveExportFields(student) : {}),
 });
 
 exports.fetchAllStudents = async (req, res) => {
@@ -1204,11 +1218,13 @@ exports.exportStudentsXlsxFile = async (req, res) => {
 
         // scope "page" exports only what the admin currently has on screen, anything else exports every match.
         const isCurrentPageOnly = req.body?.scope === "page";
+        // Sensitive columns require an explicit opt-in, so anything but "full" yields the basic sheet.
+        const includeSensitive = req.body?.detail === "full";
         const { parsedPage, parsedLimit } = parsePagination(req.body);
 
         const students = await Prisma.instituteStudent.findMany({
             where,
-            include: STUDENT_EXPORT_INCLUDE,
+            ...(includeSensitive ? { include: STUDENT_FULL_EXPORT_INCLUDE } : { select: STUDENT_BASIC_EXPORT_SELECT }),
             orderBy: STUDENT_LIST_ORDER_BY,
             ...(isCurrentPageOnly ? { skip: (parsedPage - 1) * parsedLimit, take: parsedLimit } : {}),
         });
@@ -1220,12 +1236,16 @@ exports.exportStudentsXlsxFile = async (req, res) => {
             });
         }
 
+        if(includeSensitive){
+            console.log(`FULL PII EXPORT: adminId=${req.user?.id} email=${req.user?.email} rows=${students.length} scope=${isCurrentPageOnly ? "page" : "all"}`);
+        }
+
         const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.json_to_sheet(students.map(mapStudentToExportRow));
+        const worksheet = XLSX.utils.json_to_sheet(students.map((student) => mapStudentToExportRow(student, includeSensitive)));
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
 
         const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-        const fileName = `Students_${isCurrentPageOnly ? `page_${parsedPage}_` : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
+        const fileName = `Students_${includeSensitive ? 'full' : 'basic'}_${isCurrentPageOnly ? `page_${parsedPage}_` : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
