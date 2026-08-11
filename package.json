@@ -7,7 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "create-admin": "node scripts/create-admin.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
