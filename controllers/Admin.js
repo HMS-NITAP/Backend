@@ -2258,6 +2258,54 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
     }
 }
 
+const renderAllotmentLetterHtml = (student, date) => {
+    const room = student.cot?.room;
+    if(student.paymentMode2 || student.amountPaid2){
+        return evenSemAcknowledgementAttachement(date, student.image, student.name, student.phone, student.year, student.rollNo, student.regNo, student.paymentMode2, student.amountPaid2, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+    }
+    if(student.paymentMode){
+        return acknowledgementAttachment(date, student.image, student.name, student.phone, student.year, student.rollNo, student.regNo, student.paymentMode, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+    }
+    return firstYearAcknowlegdementLetterAttachment(date, student.name, student.year, student.rollNo, student.regNo, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+};
+
+let letterGenerationQueue = Promise.resolve();
+const inFlightLetterGenerations = new Map();
+
+const buildAndStoreAllotmentLetter = async (student) => {
+    const date = new Date().toLocaleDateString();
+    const pdfPath = await PdfGenerator(renderAllotmentLetterHtml(student, date), `${student.rollNo}.pdf`);
+    try{
+        const dummyFile = { tempFilePath: pdfPath, name: `${student.rollNo}.pdf`, mimetype: "application/pdf" };
+        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, student.rollNo);
+        if(!uploadedPdf?.success){
+            throw new Error(uploadedPdf?.message || "S3 upload failed");
+        }
+        return uploadedPdf.url;
+    }finally{
+        // Always clear the temp file, even when the upload throws.
+        if(fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
+    }
+};
+
+const generateAndUploadAllotmentLetter = (student) => {
+    const existing = inFlightLetterGenerations.get(student.rollNo);
+    if(existing) return existing;
+
+    const task = letterGenerationQueue.then(() => buildAndStoreAllotmentLetter(student));
+    letterGenerationQueue = task.catch(() => { });
+
+    const tracked = task
+        .catch((e) => {
+            console.log("ERROR WHILE GENERATING ALLOTMENT LETTER:", e);
+            return null;
+        })
+        .finally(() => inFlightLetterGenerations.delete(student.rollNo));
+
+    inFlightLetterGenerations.set(student.rollNo, tracked);
+    return tracked;
+};
+
 exports.fetchStudentAllotmentLetter = async (req, res) => {
     try{
         const { studentId } = req.body;
@@ -2278,7 +2326,7 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
 
         const studentDetails = await Prisma.instituteStudent.findUnique({
             where: { id: parsedStudentId },
-            select: { rollNo: true, cotId: true },
+            include: { hostelBlock: true, cot: { include: { room: true } } },
         });
 
         if(!studentDetails){
@@ -2296,19 +2344,33 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
         }
 
         const letterKey = `${process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS}/${studentDetails.rollNo}.pdf`;
-        if(!(await s3ObjectExists(letterKey))){
+        if(await s3ObjectExists(letterKey)){
+            return res.status(200).json({
+                success: true,
+                message: "Allotment letter located.",
+                data: buildS3ObjectUrl(letterKey),
+            });
+        }
+
+        if(!studentDetails.cot?.room){
             return res.status(404).json({
                 success: false,
-                message: studentDetails.cotId
-                    ? "No allotment letter found for this student."
-                    : "No room has been allotted to this student yet.",
+                message: "No room has been allotted to this student yet.",
+            });
+        }
+
+        const generatedUrl = await generateAndUploadAllotmentLetter(studentDetails);
+        if(!generatedUrl){
+            return res.status(500).json({
+                success: false,
+                message: "Unable to generate the allotment letter.",
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: "Allotment letter located.",
-            data: buildS3ObjectUrl(letterKey),
+            message: "Allotment letter generated.",
+            data: generatedUrl,
         });
     }catch(e){
         console.log("ERROR WHILE FETCHING ALLOTMENT LETTER:", e);
