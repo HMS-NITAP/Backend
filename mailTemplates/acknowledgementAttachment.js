@@ -114,7 +114,7 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     grid-template-columns: repeat(3, 1fr);
                     grid-template-rows: 1fr;
                     gap: 10px;
-                    margin-top: 5rem;
+                    margin-top: 3rem;
                     margin-bottom: 20px;
                 }
 
@@ -216,23 +216,21 @@ const acknowledgementAttachment = (date,image,name,contact,year,rollNo,regNo,pay
                     </div>
                 </div>
 
-                <div class="joining-container">
-                    <p class="joining-field">Date of Joining : <span class="write-space"></span></p>
-                    <p class="joining-note">This is to confirm that the student has joined the hostel on the date of <span class="write-space-inline"></span>.</p>
-                </div>
-
                 <div class="sign-container">
                     <div class="grid-item">
                         <p>Signature of Student</p>
                     </div>
-                    <div class="grid-item">
-                    </div>
+                </div>
+
+                <div class="joining-container">
+                    <p class="joining-note">This is to confirm that the student has joined the hostel on the date of <span class="write-space-inline"></span>.</p>
+                </div>
+                <div class="sign-container">
+                    <div class="grid-item"></div>
                     <div>
                         <p>Signature of Warden/Caretaker</p>
                     </div>
                 </div>
-
-                <div class="heading"><p>(This is a computer-generated receipt and does not require a signature.)</p></div>
             </div>
         </body>
     </html>`
