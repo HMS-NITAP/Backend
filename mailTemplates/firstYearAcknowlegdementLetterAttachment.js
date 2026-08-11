@@ -15,14 +15,14 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     margin: 0;
                     padding: 0;
                 }
-        
+
                 .container {
                     max-width: 1180px;
                     margin: 0 auto;
                     /* padding: 20px; */
                     text-align: center;
                 }
-        
+
                 .logo {
                     max-width: 80px;
                 }
@@ -34,7 +34,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     align-items: center;
                     gap: 10px;
                 }
-                
+
                 .main {
                     display: flex;
                     flex-direction: column;
@@ -44,18 +44,18 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     font-size: 18px;
                     font-weight: 700;
                 }
-        
+
                 .message {
                     font-size: 14px;
                     font-weight: bold;
                     margin-bottom: 0px;
                 }
-        
+
                 .body {
                     font-size: 16px;
                     margin-bottom: 10px;
                 }
-        
+
                 .Acknowledgement {
                     border-top: 1px solid #000;
                     border-bottom: 1px solid #000;
@@ -86,11 +86,11 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     width: 95%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 5px;
                     margin-top: 10px;
-                    margin-bottom: 0px; 
+                    margin-bottom: 0px;
                 }
 
                 .grid-item {
@@ -107,18 +107,18 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     width: 90%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 10px;
                     margin-top: 100px;
-                    margin-bottom: 20px; 
+                    margin-bottom: 20px;
                 }
 
             </style>
-        
+
         </head>
         <body>
-            <div class="container">
+            <div class="container" style="margin-top: 0.5rem; margin-bottom: 5rem;">
                 <div class="logoContainer">
                     <div>
                         <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
@@ -145,14 +145,14 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
 
                     <div class="grid-item">
                         <div>Gender: ${gender==="M" ? "Male" : "Female"}</div>
-                        <div>Hostel Block : ${blockName}</div> 
+                        <div>Hostel Block : ${blockName}</div>
                         <div>Amount Paid: ${amount}</div>
                     </div>
 
                     <div class="grid-item">
                         <div>Floor No : ${floor}</div>
                         <div>Room No : ${roomNo}</div>
-                        <div>Cot No : ${cotNo}</div>   
+                        <div>Cot No : ${cotNo}</div>
                     </div>
                 </div>
 
@@ -169,8 +169,8 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                     </div>
                 </div>
             </div>
-            <hr />
-            <div class="container" style="margin-top: 900px;">
+            <hr style="top: 50vh" />
+            <div class="container" style="margin-top: 1rem;">
                 <div class="logoContainer">
                     <div>
                         <a href="https://www.nitandhra.ac.in/main/"><img class="logo" src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
@@ -197,14 +197,14 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
 
                     <div class="grid-item">
                         <div>Gender: ${gender==="M" ? "Male" : "Female"}</div>
-                        <div>Hostel Block : ${blockName}</div> 
+                        <div>Hostel Block : ${blockName}</div>
                         <div>Amount Paid: ${amount}</div>
                     </div>
 
                     <div class="grid-item">
                         <div>Floor No : ${floor}</div>
                         <div>Room No : ${roomNo}</div>
-                        <div>Cot No : ${cotNo}</div>   
+                        <div>Cot No : ${cotNo}</div>
                     </div>
                 </div>
 

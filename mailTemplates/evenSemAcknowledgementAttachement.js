@@ -111,11 +111,45 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                     width: 90%;
                     margin: auto;
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr); 
-                    grid-template-rows: 1fr; 
+                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-rows: 1fr;
                     gap: 10px;
                     margin-top: 40px;
-                    margin-bottom: 20px; 
+                    margin-bottom: 20px;
+                }
+
+                .joining-container {
+                    width: 90%;
+                    margin: auto;
+                    text-align: left;
+                    color: #000;
+                    margin-top: 10px;
+                    margin-bottom: 20px;
+                }
+
+                .joining-field {
+                    font-size: 16px;
+                    font-weight: 700;
+                    margin-bottom: 14px;
+                }
+
+                .joining-note {
+                    font-size: 15px;
+                    font-weight: 500;
+                }
+
+                /* Blank rules for the caretaker to fill in by hand on the printed copy. */
+                .write-space {
+                    display: inline-block;
+                    width: 240px;
+                    border-bottom: 1px solid #000;
+                }
+
+                /* Narrower so the sentence and its blank stay on one line. */
+                .write-space-inline {
+                    display: inline-block;
+                    width: 170px;
+                    border-bottom: 1px solid #000;
                 }
 
             </style>
@@ -180,6 +214,11 @@ const evenSemAcknowledgementAttachement = (date,image,name,contact,year,rollNo,r
                         <p>Cot No : ${cotNo}</p>
                         <p>Floor No : ${floor}</p>
                     </div>
+                </div>
+
+                <div class="joining-container">
+                    <p class="joining-field">Date of Joining : <span class="write-space"></span></p>
+                    <p class="joining-note">This is to confirm that the student has joined the hostel on the date of <span class="write-space-inline"></span>.</p>
                 </div>
 
                 <div class="sign-container">
