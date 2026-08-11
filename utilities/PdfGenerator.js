@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
 
-const PdfGenerator = async (htmlContent, filename) => {
+const PdfGenerator = async (htmlContent, filename, pdfOptions = {}) => {
     try {
         // const browser = await puppeteer.launch({
         //     args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -21,7 +21,7 @@ const PdfGenerator = async (htmlContent, filename) => {
 
         // Generate PDF
         const pdfPath = path.join(__dirname, filename);
-        await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
+        await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, ...pdfOptions });
         console.log("PDF generated");
 
         await browser.close();

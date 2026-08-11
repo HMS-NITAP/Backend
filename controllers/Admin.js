@@ -2354,6 +2354,8 @@ const printable = (value) => (value === null || value === undefined || value ===
 // Serial number -> NITAP/MESS/2026/00042.
 const messCardSerialNo = (student) => `NITAP/MESS/${new Date().getFullYear()}/${String(student.id).padStart(5, "0")}`;
 
+const floorPrefixedRoomNo = (room) => (room ? `${room.floorNumber}${room.roomNumber}` : null);
+
 const renderMessIdCardHtml = (student) => messIdCardAttachment({
     serialNo: messCardSerialNo(student),
     image: student.image,
@@ -2363,15 +2365,15 @@ const renderMessIdCardHtml = (student) => messIdCardAttachment({
     branch: printable(student.branch),
     contact: printable(student.phone),
     blockName: printable(student.hostelBlock?.name),
-    roomNo: printable(student.cot?.room?.roomNumber),
+    roomNo: printable(floorPrefixedRoomNo(student.cot?.room)),
     messHall: printable(student.messHall?.hallName),
 });
 
 let letterGenerationQueue = Promise.resolve();
 const inFlightLetterGenerations = new Map();
 
-const buildAndStoreStudentDocument = async (student, { html, folder, fileName, field }) => {
-    const pdfPath = await PdfGenerator(html, `${fileName}.pdf`);
+const buildAndStoreStudentDocument = async (student, { html, folder, fileName, field, pdfOptions }) => {
+    const pdfPath = await PdfGenerator(html, `${fileName}.pdf`, pdfOptions);
     try{
         const dummyFile = { tempFilePath: pdfPath, name: `${fileName}.pdf`, mimetype: "application/pdf" };
         const uploadedPdf = await uploadMediaToS3(dummyFile, folder, fileName);
@@ -2420,6 +2422,7 @@ const messIdCardDocument = {
     label: "Mess ID card",
     folder: () => process.env.FOLDER_NAME_MESS_ID_CARDS || "mess-id-cards",
     render: renderMessIdCardHtml,
+    pdfOptions: { preferCSSPageSize: true },
 };
 
 const generateStudentDocument = (student, document) => {
@@ -2430,6 +2433,7 @@ const generateStudentDocument = (student, document) => {
         folder,
         fileName,
         field: document.field,
+        pdfOptions: document.pdfOptions,
     }));
 };
 
