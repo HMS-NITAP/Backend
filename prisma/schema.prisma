@@ -172,6 +172,7 @@ model InstituteStudent {
   paymentMode2          PaymentMode?
   dateOfJoining         DateTime?             @db.Timestamp(6)
   allotmentLetterUrl    String?               @db.VarChar(500)
+  messCardUrl           String?               @db.VarChar(500)
   outingRating          Decimal
   disciplineRating      Decimal
   userId                Int                   @unique

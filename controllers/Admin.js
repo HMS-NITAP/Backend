@@ -16,6 +16,7 @@ const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter'
 const { uploadMediaToS3, buildS3ObjectUrl, s3ObjectExists } = require('../utilities/S3mediaUploader');
 const { findRegNoConflict, findRollNoConflict, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
+const messIdCardAttachment = require('../mailTemplates/messIdCardAttachment');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -2348,23 +2349,39 @@ const renderAllotmentLetterHtml = (student, date) => {
     return firstYearAcknowlegdementLetterAttachment(date, student.name, student.year, student.rollNo, student.regNo, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
 };
 
+const printable = (value) => (value === null || value === undefined || value === "" ? "-" : value);
+
+// Serial number -> NITAP/MESS/2026/00042.
+const messCardSerialNo = (student) => `NITAP/MESS/${new Date().getFullYear()}/${String(student.id).padStart(5, "0")}`;
+
+const renderMessIdCardHtml = (student) => messIdCardAttachment({
+    serialNo: messCardSerialNo(student),
+    image: student.image,
+    name: printable(student.name),
+    rollNo: printable(letterIdentifier(student)),
+    course: "B.Tech",
+    branch: printable(student.branch),
+    contact: printable(student.phone),
+    blockName: printable(student.hostelBlock?.name),
+    roomNo: printable(student.cot?.room?.roomNumber),
+    messHall: printable(student.messHall?.hallName),
+});
+
 let letterGenerationQueue = Promise.resolve();
 const inFlightLetterGenerations = new Map();
 
-const buildAndStoreAllotmentLetter = async (student) => {
-    const date = new Date().toLocaleDateString();
-    const identifier = letterIdentifier(student);
-    const pdfPath = await PdfGenerator(renderAllotmentLetterHtml(student, date), `${identifier}.pdf`);
+const buildAndStoreStudentDocument = async (student, { html, fileName, field }) => {
+    const pdfPath = await PdfGenerator(html, `${fileName}.pdf`);
     try{
-        const dummyFile = { tempFilePath: pdfPath, name: `${identifier}.pdf`, mimetype: "application/pdf" };
-        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, identifier);
+        const dummyFile = { tempFilePath: pdfPath, name: `${fileName}.pdf`, mimetype: "application/pdf" };
+        const uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, fileName);
         if(!uploadedPdf?.success){
             throw new Error(uploadedPdf?.message || "S3 upload failed");
         }
 
         await Prisma.instituteStudent.update({
             where: { id: student.id },
-            data: { allotmentLetterUrl: uploadedPdf.url },
+            data: { [field]: uploadedPdf.url },
         });
         return uploadedPdf.url;
     }finally{
@@ -2373,26 +2390,40 @@ const buildAndStoreAllotmentLetter = async (student) => {
     }
 };
 
-const generateAndUploadAllotmentLetter = (student) => {
-    const identifier = letterIdentifier(student);
-    const existing = inFlightLetterGenerations.get(identifier);
+const generateAndUploadDocument = (key, build) => {
+    const existing = inFlightLetterGenerations.get(key);
     if(existing) return existing;
 
-    const task = letterGenerationQueue.then(() => buildAndStoreAllotmentLetter(student));
+    const task = letterGenerationQueue.then(build);
     letterGenerationQueue = task.catch(() => { });
 
     const tracked = task
         .catch((e) => {
-            console.log("ERROR WHILE GENERATING ALLOTMENT LETTER:", e);
+            console.log(`ERROR WHILE GENERATING STUDENT DOCUMENT (${key}):`, e);
             return null;
         })
-        .finally(() => inFlightLetterGenerations.delete(identifier));
+        .finally(() => inFlightLetterGenerations.delete(key));
 
-    inFlightLetterGenerations.set(identifier, tracked);
+    inFlightLetterGenerations.set(key, tracked);
     return tracked;
 };
 
-exports.fetchStudentAllotmentLetter = async (req, res) => {
+const generateAndUploadAllotmentLetter = (student) => generateAndUploadDocument(letterIdentifier(student), () => buildAndStoreStudentDocument(student, {
+    html: renderAllotmentLetterHtml(student, new Date().toLocaleDateString()),
+    fileName: letterIdentifier(student),
+    field: "allotmentLetterUrl",
+}));
+
+const generateAndUploadMessIdCard = (student) => {
+    const fileName = `${letterIdentifier(student)}-mess-card`;
+    return generateAndUploadDocument(fileName, () => buildAndStoreStudentDocument(student, {
+        html: renderMessIdCardHtml(student),
+        fileName,
+        field: "messCardUrl",
+    }));
+};
+
+const serveStudentDocument = async (req, res, { field, label, generate }) => {
     try{
         const { studentId } = req.body;
         if(!studentId){
@@ -2412,7 +2443,7 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
 
         const studentDetails = await Prisma.instituteStudent.findUnique({
             where: { id: parsedStudentId },
-            include: { hostelBlock: true, cot: { include: { room: true } } },
+            include: { hostelBlock: true, messHall: true, cot: { include: { room: true } } },
         });
 
         if(!studentDetails){
@@ -2422,11 +2453,11 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
             });
         }
 
-        if(studentDetails.allotmentLetterUrl){
+        if(studentDetails[field]){
             return res.status(200).json({
                 success: true,
-                message: "Allotment letter located.",
-                data: studentDetails.allotmentLetterUrl,
+                message: `${label} located.`,
+                data: studentDetails[field],
             });
         }
 
@@ -2437,24 +2468,36 @@ exports.fetchStudentAllotmentLetter = async (req, res) => {
             });
         }
 
-        const generatedUrl = await generateAndUploadAllotmentLetter(studentDetails);
+        const generatedUrl = await generate(studentDetails);
         if(!generatedUrl){
             return res.status(500).json({
                 success: false,
-                message: "Unable to generate the allotment letter.",
+                message: `Unable to generate the ${label.toLowerCase()}.`,
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: "Allotment letter generated.",
+            message: `${label} generated.`,
             data: generatedUrl,
         });
     }catch(e){
-        console.log("ERROR WHILE FETCHING ALLOTMENT LETTER:", e);
+        console.log(`ERROR WHILE FETCHING ${label.toUpperCase()}:`, e);
         return res.status(500).json({
             success: false,
-            message: "Unable to fetch the allotment letter.",
+            message: `Unable to fetch the ${label.toLowerCase()}.`,
         });
     }
-}
+};
+
+exports.fetchStudentAllotmentLetter = (req, res) => serveStudentDocument(req, res, {
+    field: "allotmentLetterUrl",
+    label: "Allotment letter",
+    generate: generateAndUploadAllotmentLetter,
+});
+
+exports.fetchStudentMessIdCard = (req, res) => serveStudentDocument(req, res, {
+    field: "messCardUrl",
+    label: "Mess ID card",
+    generate: generateAndUploadMessIdCard,
+});
