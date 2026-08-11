@@ -13,8 +13,10 @@ const XLSX = require('xlsx');
 const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAcknowledgementAttachement');
 const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
 const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
-const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
+const { uploadMediaToS3, buildS3ObjectUrl, s3ObjectExists } = require('../utilities/S3mediaUploader');
+const { findRegNoConflict, findRollNoConflict, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
+const messIdCardAttachment = require('../mailTemplates/messIdCardAttachment');
 
 exports.createHostelBlock = async(req,res) => {
     try{
@@ -126,7 +128,7 @@ exports.removeWardenFromHostelBlock = async(req,res) => {
         let {removeWardenId,hostelBlockId} = req.body;
         removeWardenId = parseInt(removeWardenId);
         hostelBlockId = parseInt(hostelBlockId);
-        
+
         if(!removeWardenId || !hostelBlockId){
             return res.status(404).json({
                 success:false,
@@ -242,7 +244,7 @@ exports.createOfficialAccount = async(req,res) => {
         }
 
         await Prisma.official.create({data : {name,designation,gender,phone,userId:user?.id}});
-        
+
         return res.status(200).json({
             success:true,
             message:"Account created Successfully",
@@ -337,7 +339,7 @@ exports.fetchRegistrationApplications = async(_,res) => {
                         },
                         hostelBlock : true,
                     }
-                }   
+                }
             }
         })
 
@@ -400,7 +402,7 @@ exports.acceptRegistrationApplication = async(req,res) => {
         const cotDetails = await Prisma.cot.update({where : {id : studentDetails?.cotId}, data : {status : "BOOKED"}, include:{room : true}});
         await Prisma.studentAttendence.create({data : {studentId:studentDetails?.id,presentDays:[],absentDays:[]}});
         await Prisma.studentMessRecords.create({data : {studentId : studentDetails?.id, availed:{}}});
-        
+
         try{
             let date = new Date();
             date = date.toLocaleDateString();
@@ -716,7 +718,7 @@ exports.fetchFreezedApplications = async(_,res) => {
                         },
                         hostelBlock : true,
                     }
-                }   
+                }
             }
         })
 
@@ -771,22 +773,22 @@ exports.getDashboardData = async (_, res) => {
           },
         },
       });
-  
+
       let overallAvailableCots = 0;
       let overallBookedCots = 0;
       let overallBlockedCots = 0;
-  
+
       const formattedResult = result.map((block) => {
         const totalRooms = block.rooms.length;
         const totalCots = block.rooms.reduce((acc, room) => acc + room.cots.length, 0);
         const bookedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BOOKED').length, 0);
         const blockedCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'BLOCKED').length, 0);
         const availableCots = block.rooms.reduce((acc, room) => acc + room.cots.filter(cot => cot.status === 'AVAILABLE').length, 0);
-  
+
         overallAvailableCots += availableCots;
         overallBookedCots += bookedCots;
         overallBlockedCots += blockedCots;
-  
+
         return {
           blockId: block.id,
           blockName: block.name,
@@ -798,7 +800,7 @@ exports.getDashboardData = async (_, res) => {
           availableCots,
         };
       });
-  
+
       const activeStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
@@ -808,22 +810,22 @@ exports.getDashboardData = async (_, res) => {
           ],
         },
       });
-      
-  
+
+
       const inactiveStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
           status: 'INACTIVE',
         },
       });
-  
+
       const freezedStudentsCount = await Prisma.user.count({
         where: {
           accountType: 'STUDENT',
           status: 'FREEZED',
         },
       });
-  
+
       return res.status(200).json({
         success: true,
         message: "Fetched Data Successfully",
@@ -920,7 +922,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
         })
     }
 }
-  
+
 exports.fetchRoomsInHostelBlock = async(req,res) => {
     try{
         const {hostelBlockId} = req.body;
@@ -973,7 +975,7 @@ exports.fetchCotsInRooms = async(req,res) => {
               },
             },
         });
-          
+
         if(!roomDetails){
             return res.status(404).json({
                 success:false,
@@ -1006,19 +1008,15 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
             })
         }
 
-        let studentDetails;
-
-        if(idNumber.length === 6){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {rollNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
-        }else if(idNumber.length === 7){
-            studentDetails = await Prisma.instituteStudent.findFirst({where : {regNo : idNumber}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
-        }else{
+        const trimmedIdNumber = String(idNumber).trim();
+        if(!/^[0-9]+$/.test(trimmedIdNumber)){
             return res.status(402).json({
                 success:false,
                 message:"Invalid ID number",
             })
         }
 
+        const studentDetails = await Prisma.instituteStudent.findFirst({where : {OR : [{rollNo : trimmedIdNumber},{regNo : trimmedIdNumber}]}, include:{user:true, outingApplication: {include: { verifiedBy: { select: { name: true,designation: true}}, hostelBlock: true } }, hostelComplaints: { include: {resolvedBy: { select: { name: true, designation: true }},hostelBlock: true} }, messHall:true, cot:{include:{room:{include : {hostelBlock:true}}}}}});
         if(!studentDetails){
             return res.status(404).json({
                 success:false,
@@ -1038,8 +1036,229 @@ exports.fetchStudentByRollNoAndRegNo = async(req,res) => {
             success:false,
             message:"unable to Fetch Student",
         })
-    } 
+    }
 }
+
+const STUDENT_LIST_MAX_PAGE_SIZE = 200;
+const STUDENT_LIST_DEFAULT_PAGE_SIZE = 25;
+const BRANCH_VALUES = ["CSE","ECE","EEE","MECH","CIVIL","BIOTECH","CHEM","MME"];
+
+const STUDENT_LIST_SELECT = {
+    id: true,
+    name: true,
+    rollNo: true,
+    regNo: true,
+    year: true,
+    branch: true,
+    gender: true,
+    user: { select: { status: true } },
+    hostelBlock: { select: { id: true, name: true } },
+    cot: { select: { cotNo: true, room: { select: { roomNumber: true, floorNumber: true } } } },
+};
+
+const STUDENT_BASIC_EXPORT_SELECT = {
+    ...STUDENT_LIST_SELECT,
+    dateOfJoining: true,
+    user: { select: { email: true, status: true } },
+};
+
+const STUDENT_FULL_EXPORT_INCLUDE = {
+    user: { select: { email: true, status: true } },
+    hostelBlock: { select: { id: true, name: true } },
+    cot: { include: { room: true } },
+};
+
+const STUDENT_LIST_ORDER_BY = [
+    { hostelBlock: { name: 'asc' } },
+    { rollNo: 'asc' },
+];
+
+// Shared by the paginated list and the xlsx export so both always agree on what "matches the filters" means.
+const buildStudentListFilters = ({ year, branch, hostelBlockId, floorNumber, search }) => {
+    const where = {};
+
+    if(year){
+        where.year = String(year);
+    }
+
+    if(branch){
+        if(!BRANCH_VALUES.includes(branch)){
+            throw new Error(`Invalid branch: ${branch}`);
+        }
+        where.branch = branch;
+    }
+
+    if(hostelBlockId){
+        const parsedHostelBlockId = parseInt(hostelBlockId);
+        if(isNaN(parsedHostelBlockId)){
+            throw new Error(`Invalid hostel block: ${hostelBlockId}`);
+        }
+        where.hostelBlockId = parsedHostelBlockId;
+    }
+
+    if(floorNumber !== undefined && floorNumber !== null && floorNumber !== ""){
+        const parsedFloorNumber = parseInt(floorNumber);
+        if(isNaN(parsedFloorNumber)){
+            throw new Error(`Invalid floor: ${floorNumber}`);
+        }
+        where.cot = { room: { floorNumber: parsedFloorNumber } };
+    }
+
+    const trimmedSearch = typeof search === "string" ? search.trim() : "";
+    if(trimmedSearch){
+        where.OR = [
+            { name: { contains: trimmedSearch, mode: "insensitive" } },
+            { rollNo: { contains: trimmedSearch, mode: "insensitive" } },
+            { regNo: { contains: trimmedSearch, mode: "insensitive" } },
+        ];
+    }
+
+    return where;
+};
+
+const parsePagination = ({ page, limit }) => {
+    const parsedPage = Math.max(parseInt(page) || 1, 1);
+    const parsedLimit = Math.min(Math.max(parseInt(limit) || STUDENT_LIST_DEFAULT_PAGE_SIZE, 1), STUDENT_LIST_MAX_PAGE_SIZE);
+    return { parsedPage, parsedLimit };
+};
+
+const mapStudentToBasicExportRow = (student) => ({
+    Name: student.name,
+    Roll_Number: student.rollNo,
+    Registration_Number: student.regNo,
+    Email: student.user?.email ?? 'N/A',
+    Year: student.year,
+    Branch: student.branch,
+    Gender: student.gender,
+    Block_Name: student.hostelBlock?.name ?? 'N/A',
+    Floor_Number: student.cot?.room?.floorNumber ?? 'N/A',
+    Room_Number: student.cot?.room?.roomNumber ?? 'N/A',
+    Cot_Number: student.cot?.cotNo ?? 'N/A',
+    Date_Of_Joining: student.dateOfJoining ? new Date(student.dateOfJoining).toISOString().split('T')[0] : 'N/A',
+    Account_Status: student.user?.status ?? 'N/A',
+});
+
+const mapStudentToSensitiveExportFields = (student) => ({
+    Community: student.community ?? 'N/A',
+    PWD: student.pwd ? 'Yes' : 'No',
+    Date_Of_Birth: student.dob ?? 'N/A',
+    Blood_Group: student.bloodGroup ?? 'N/A',
+    Aadhaar_Number: student.aadhaarNumber ?? 'N/A',
+    Father_Name: student.fatherName ?? 'N/A',
+    Mother_Name: student.motherName ?? 'N/A',
+    Phone_Number: student.phone ?? 'N/A',
+    Parents_Number: student.parentsPhone ?? 'N/A',
+    Emergency_Number: student.emergencyPhone ?? 'N/A',
+    Address: student.address ?? 'N/A',
+    Amount_Paid: student.amountPaid ?? 'N/A',
+});
+
+const mapStudentToExportRow = (student, includeSensitive) => ({
+    ...mapStudentToBasicExportRow(student),
+    ...(includeSensitive ? mapStudentToSensitiveExportFields(student) : {}),
+});
+
+exports.fetchAllStudents = async (req, res) => {
+    try{
+        let where;
+        try{
+            where = buildStudentListFilters(req.body);
+        }catch(e){
+            return res.status(400).json({
+                success: false,
+                message: e.message,
+            });
+        }
+
+        const { parsedPage, parsedLimit } = parsePagination(req.body);
+
+        const total = await Prisma.instituteStudent.count({ where });
+        const totalPages = Math.max(Math.ceil(total / parsedLimit), 1);
+        const currentPage = Math.min(parsedPage, totalPages);
+
+        const students = await Prisma.instituteStudent.findMany({
+            where,
+            select: STUDENT_LIST_SELECT,
+            orderBy: STUDENT_LIST_ORDER_BY,
+            skip: (currentPage - 1) * parsedLimit,
+            take: parsedLimit,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Successfully fetched students.",
+            data: {
+                students,
+                total,
+                page: currentPage,
+                limit: parsedLimit,
+                totalPages,
+            },
+        });
+    }catch(e){
+        console.log("ERROR WHILE FETCHING ALL STUDENTS:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to fetch students.",
+        });
+    }
+};
+
+exports.exportStudentsXlsxFile = async (req, res) => {
+    try{
+        let where;
+        try{
+            where = buildStudentListFilters(req.body);
+        }catch(e){
+            return res.status(400).json({
+                success: false,
+                message: e.message,
+            });
+        }
+
+        // scope "page" exports only what the admin currently has on screen, anything else exports every match.
+        const isCurrentPageOnly = req.body?.scope === "page";
+        // Sensitive columns require an explicit opt-in, so anything but "full" yields the basic sheet.
+        const includeSensitive = req.body?.detail === "full";
+        const { parsedPage, parsedLimit } = parsePagination(req.body);
+
+        const students = await Prisma.instituteStudent.findMany({
+            where,
+            ...(includeSensitive ? { include: STUDENT_FULL_EXPORT_INCLUDE } : { select: STUDENT_BASIC_EXPORT_SELECT }),
+            orderBy: STUDENT_LIST_ORDER_BY,
+            ...(isCurrentPageOnly ? { skip: (parsedPage - 1) * parsedLimit, take: parsedLimit } : {}),
+        });
+
+        if(students.length === 0){
+            return res.status(404).json({
+                success: false,
+                message: "No students matched the applied filters.",
+            });
+        }
+
+        if(includeSensitive){
+            console.log(`FULL PII EXPORT: adminId=${req.user?.id} email=${req.user?.email} rows=${students.length} scope=${isCurrentPageOnly ? "page" : "all"}`);
+        }
+
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(students.map((student) => mapStudentToExportRow(student, includeSensitive)));
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
+
+        const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const fileName = `Students_${includeSensitive ? 'full' : 'basic'}_${isCurrentPageOnly ? `page_${parsedPage}_` : ''}${new Date().toISOString().split('T')[0]}.xlsx`;
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+        return res.status(200).send(buffer);
+    }catch(e){
+        console.log("ERROR WHILE EXPORTING STUDENTS:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to export students.",
+        });
+    }
+};
 
 exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
     try{
@@ -1123,7 +1342,7 @@ exports.downloadStudentDetailsInHostelBlockXlsxFile = async (req, res) => {
 
         const emailBody = `<p>Please find the attached .xlsx file containing the student details ${hostelBlockData?.name} Hall of Residence.</p>`;
 
-        await SendEmail("hmsnitap@gmail.com", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
+        await SendEmail("hosteloffice@nitandhra.ac.in", "Hostel Block Student Details | HMS NIT AP", emailBody, filePath, fileName);
 
         fs.unlinkSync(filePath);
 
@@ -1185,7 +1404,7 @@ exports.deleteStudentAccount = async(req,res) => {
         try{
             await Prisma.studentMessRecords.delete({where : {studentId : userDetails?.instituteStudent?.id}});
         }catch(e){}
-        
+
         try{
             await Prisma.cot.update({where : {id : userDetails?.instituteStudent?.cotId}, data : {status : "AVAILABLE"}});
         }catch(e){}
@@ -1299,14 +1518,14 @@ exports.fetchCotsForChangeCotOption = async(req,res) => {
               id: 'asc',
             },
           });
-          
+
 
         return res.status(200).json({
             success:true,
             message:"Fetched Data",
             data:requiredData,
         })
-                    
+
     }catch(e){
         console.log(e);
         return res.status(400).json({
@@ -1359,19 +1578,19 @@ exports.swapOrExchangeCot = async(req,res) => {
             await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data: {cot: {disconnect: true}}});
             await Prisma.instituteStudent.update({where : {id : changeToCotDetails?.student?.id}, data : {cotId : currentCotId, hostelBlockId:currentCotDetails?.room?.hostelBlockId}});
             await Prisma.instituteStudent.update({where : {id : currentCotDetails?.student?.id}, data : {cotId : changeToCotId, hostelBlockId:changeToCotDetails?.room?.hostelBlockId}});
-        
+
         }else{
             return res.status(402).json({
                 success:false,
                 message:"Invalid Operation",
             })
         }
-        
+
         return res.status(200).json({
             success:true,
             message:"Changed Cot Successfully",
         })
-        
+
     }catch(e){
         console.log(e);
         return res.status(400).json({
@@ -1403,7 +1622,7 @@ exports.fetchEvenSemRegistrationApplications = async(_,res) => {
                 },
               },
             },
-        });  
+        });
 
         return res.status(200).json({
             success:true,
@@ -1455,7 +1674,7 @@ exports.acceptEvenSemRegistrationApplication = async(req,res) => {
 
         await Prisma.user.update({where : {id:userId}, data : {status:"ACTIVE"}});
         const cotDetails = await Prisma.cot.findUnique({where : {id : studentDetails?.cotId},include:{room : true}});
-        
+
         try{
             let date = new Date();
             date = date.toLocaleDateString();
@@ -1754,7 +1973,7 @@ exports.downloadAllStudentDetailsXlsxFile = async (_, res) => {
             { wch: 20 },
             { wch: 10 },
         ];
-        
+
         XLSX.utils.book_append_sheet(workbook, worksheet, 'AllStudents');
 
         const fileName = `All_Student_Details_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -1762,12 +1981,12 @@ exports.downloadAllStudentDetailsXlsxFile = async (_, res) => {
         XLSX.writeFile(workbook, filePath);
 
         const emailBody = `<p>Dear Admin,</p><p>Please find the attached .xlsx file containing the details of all students registered in the HMS portal.</p><p>This is an auto-generated email.</p>`;
-        
+
         await SendEmail(
-            "hmsnitap@gmail.com", 
-            "All Student Details Report | HMS NIT AP", 
-            emailBody, 
-            filePath, 
+            "hosteloffice@nitandhra.ac.in",
+            "All Student Details Report | HMS NIT AP",
+            emailBody,
+            filePath,
             fileName
         );
 
@@ -1805,7 +2024,7 @@ exports.editStudentAccount = async (req, res) => {
                 message: "Invalid Student ID provided.",
             });
         }
-        
+
         const existingStudent = await Prisma.instituteStudent.findUnique({
             where: { id: parsedStudentId },
         });
@@ -1814,6 +2033,30 @@ exports.editStudentAccount = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Student with the given ID not found.",
+            });
+        }
+
+        const editRollNoFormatError = validateRollNoFormat(rollNo);
+        if (editRollNoFormatError) {
+            return res.status(400).json({
+                success: false,
+                message: editRollNoFormatError,
+            });
+        }
+
+        const editRegNoConflict = await findRegNoConflict(Prisma, regNo, parsedStudentId);
+        if (editRegNoConflict) {
+            return res.status(400).json({
+                success: false,
+                message: editRegNoConflict,
+            });
+        }
+
+        const editRollNoConflict = await findRollNoConflict(Prisma, rollNo, parsedStudentId);
+        if (editRollNoConflict) {
+            return res.status(400).json({
+                success: false,
+                message: editRollNoConflict,
             });
         }
 
@@ -1829,7 +2072,7 @@ exports.editStudentAccount = async (req, res) => {
             emergencyPhone,
             address,
         };
-        
+
         await Prisma.instituteStudent.update({
             where: { id: parsedStudentId },
             data: updateData,
@@ -1851,25 +2094,80 @@ exports.editStudentAccount = async (req, res) => {
 
 exports.createNewStudentFirstYear = async(req, res) => {
     try{
-        const { rollNo, regNo, name, gender, branch, amountPaid} = req.body;
-        if(!rollNo || !regNo || !name || !gender || !branch || !amountPaid){
-            console.log(rollNo, regNo, name, gender, branch, amountPaid);
-            return res.status(404).json({
+        const { regNo, name, gender, branch, amountPaid, dateOfJoining, pwd } = req.body;
+
+        // First years are often admitted before roll numbers are issued, so rollNo is optional.
+        const rollNo = typeof req.body.rollNo === "string" && req.body.rollNo.trim() ? req.body.rollNo.trim() : null;
+
+        if(!regNo || !name || !gender || !branch || !amountPaid || !dateOfJoining){
+            return res.status(400).json({
                 success: false,
                 message: "Required data is missing",
             });
         }
 
-        const studentDetails = await Prisma.instituteStudent.findFirst({where: { rollNo: rollNo}});
-        if(studentDetails){
+        const normalizedPwd = String(pwd ?? "").trim().toLowerCase();
+        if(!["true", "false"].includes(normalizedPwd)){
             return res.status(400).json({
                 success: false,
-                message: "Student with this Roll Number already exists",
+                message: "Invalid PWD status provided",
+            });
+        }
+        const pwdStatus = normalizedPwd === "true";
+
+        if(!/^[0-9]+$/.test(String(regNo).trim())){
+            return res.status(400).json({
+                success: false,
+                message: "Registration Number must contain digits only",
+            });
+        }
+        const trimmedRegNo = String(regNo).trim();
+
+        const rollNoFormatError = validateRollNoFormat(rollNo);
+        if(rollNoFormatError){
+            return res.status(400).json({
+                success: false,
+                message: rollNoFormatError,
             });
         }
 
-        const hashedPassword = await bcrypt.hash(rollNo,10);
-        const user = await Prisma.user.create({data : {email:`${rollNo}@student.nitandhra.ac.in`,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
+        const parsedDateOfJoining = new Date(dateOfJoining);
+        if(isNaN(parsedDateOfJoining.getTime())){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Date of Joining provided",
+            });
+        }
+
+        const regNoConflict = await findRegNoConflict(Prisma, trimmedRegNo);
+        if(regNoConflict){
+            return res.status(400).json({
+                success: false,
+                message: regNoConflict,
+            });
+        }
+
+        const rollNoConflict = await findRollNoConflict(Prisma, rollNo);
+        if(rollNoConflict){
+            return res.status(400).json({
+                success: false,
+                message: rollNoConflict,
+            });
+        }
+
+        const loginIdentifier = rollNo || trimmedRegNo;
+        const email = `${loginIdentifier}@student.nitandhra.ac.in`;
+
+        const duplicateEmail = await Prisma.user.findUnique({where : {email}});
+        if(duplicateEmail){
+            return res.status(400).json({
+                success: false,
+                message: `An account already uses ${email}. Provide a different Roll/Registration Number.`,
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(loginIdentifier,10);
+        const user = await Prisma.user.create({data : {email,password:hashedPassword,accountType:"STUDENT",status:"INACTIVE"}});
         if(!user){
             return res.status(401).json({
                 success:false,
@@ -1884,9 +2182,7 @@ exports.createNewStudentFirstYear = async(req, res) => {
                 message:"User ID Not Found",
             })
         }
-        console.log("TERE");
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,year: "1",branch,gender,amountPaid,outingRating:5.0,disciplineRating:5.0,userId}});
-        console.log("TERE1");
+        await Prisma.instituteStudent.create({data : {regNo:trimmedRegNo,rollNo,name,year: "1",branch,gender,pwd:pwdStatus,amountPaid,dateOfJoining:parsedDateOfJoining,outingRating:5.0,disciplineRating:5.0,userId}});
         return res.status(200).json({
             success: true,
             message: "New student account created successfully.",
@@ -1947,7 +2243,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message: "Student ID is missing",
             });
         }
-        
+
         studentId = parseInt(studentId);
         cotId = parseInt(cotId);
         let studentDetails = await Prisma.instituteStudent.findUnique({where : {id: studentId}});
@@ -1965,7 +2261,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message: "Cot not available for allotment",
             });
         }
-        
+
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BOOKED"}});
         studentDetails = await Prisma.instituteStudent.update({
             where: { id: studentId },
@@ -1983,9 +2279,9 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 }
             },
             include: {
-                hostelBlock: true,   
-                cot: true,        
-                user: true         
+                hostelBlock: true,
+                cot: true,
+                user: true
             }
         });
 
@@ -1993,9 +2289,12 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
         try{
             let date = new Date();
             date = date.toLocaleDateString();
-            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            const dummyFile = { tempFilePath: pdfPath, name: `${studentDetails?.rollNo}.pdf`, mimetype: "application/pdf" };
-            uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, studentDetails?.rollNo);
+
+            // Falls back to the registration number for first years without a roll number yet.
+            const letterName = letterIdentifier(studentDetails);
+            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${letterName}.pdf`);
+            const dummyFile = { tempFilePath: pdfPath, name: `${letterName}.pdf`, mimetype: "application/pdf" };
+            uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, letterName);
             if(!uploadedPdf){
                 return res.status(400).json({
                     success:false,
@@ -2008,6 +2307,10 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                     message: "PDF Upload Failed",
                 });
             }
+            await Prisma.instituteStudent.update({
+                where: { id: studentDetails.id },
+                data: { allotmentLetterUrl: uploadedPdf.url },
+            });
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
@@ -2016,7 +2319,7 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
                 message:"Error Generating Allotment Letter",
             });
         };
-        
+
         return res.status(200).json({
             success: true,
             message: "Room allotted successfully and acknowledgement letter generated.",
@@ -2030,3 +2333,178 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
         })
     }
 }
+
+// Admin-created first years may not have a roll number yet, so the registration number stands in
+// as the letter's filename and S3 key.
+const letterIdentifier = (student) => student?.rollNo || student?.regNo;
+
+const renderAllotmentLetterHtml = (student, date) => {
+    const room = student.cot?.room;
+    if(student.paymentMode2 || student.amountPaid2){
+        return evenSemAcknowledgementAttachement(date, student.image, student.name, student.phone, student.year, student.rollNo, student.regNo, student.paymentMode2, student.amountPaid2, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+    }
+    if(student.paymentMode){
+        return acknowledgementAttachment(date, student.image, student.name, student.phone, student.year, student.rollNo, student.regNo, student.paymentMode, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+    }
+    return firstYearAcknowlegdementLetterAttachment(date, student.name, student.year, student.rollNo, student.regNo, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+};
+
+const printable = (value) => (value === null || value === undefined || value === "" ? "-" : value);
+
+// Serial number -> NITAP/MESS/2026/00042.
+const messCardSerialNo = (student) => `NITAP/MESS/${new Date().getFullYear()}/${String(student.id).padStart(5, "0")}`;
+
+const floorPrefixedRoomNo = (room) => (room ? `${room.floorNumber}${room.roomNumber}` : null);
+
+const renderMessIdCardHtml = (student) => messIdCardAttachment({
+    serialNo: messCardSerialNo(student),
+    image: student.image,
+    name: printable(student.name),
+    rollNo: printable(letterIdentifier(student)),
+    course: "B.Tech",
+    branch: printable(student.branch),
+    contact: printable(student.phone),
+    blockName: printable(student.hostelBlock?.name),
+    roomNo: printable(floorPrefixedRoomNo(student.cot?.room)),
+    messHall: printable(student.messHall?.hallName),
+});
+
+let letterGenerationQueue = Promise.resolve();
+const inFlightLetterGenerations = new Map();
+
+const buildAndStoreStudentDocument = async (student, { html, folder, fileName, field, pdfOptions }) => {
+    const pdfPath = await PdfGenerator(html, `${fileName}.pdf`, pdfOptions);
+    try{
+        const dummyFile = { tempFilePath: pdfPath, name: `${fileName}.pdf`, mimetype: "application/pdf" };
+        const uploadedPdf = await uploadMediaToS3(dummyFile, folder, fileName);
+        if(!uploadedPdf?.success){
+            throw new Error(uploadedPdf?.message || "S3 upload failed");
+        }
+
+        await Prisma.instituteStudent.update({
+            where: { id: student.id },
+            data: { [field]: uploadedPdf.url },
+        });
+        return uploadedPdf.url;
+    }finally{
+        // Always clear the temp file, even when the upload throws.
+        if(fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
+    }
+};
+
+const generateAndUploadDocument = (key, build) => {
+    const existing = inFlightLetterGenerations.get(key);
+    if(existing) return existing;
+
+    const task = letterGenerationQueue.then(build);
+    letterGenerationQueue = task.catch(() => { });
+
+    const tracked = task
+        .catch((e) => {
+            console.log(`ERROR WHILE GENERATING STUDENT DOCUMENT (${key}):`, e);
+            return null;
+        })
+        .finally(() => inFlightLetterGenerations.delete(key));
+
+    inFlightLetterGenerations.set(key, tracked);
+    return tracked;
+};
+
+const allotmentLetterDocument = {
+    field: "allotmentLetterUrl",
+    label: "Allotment letter",
+    folder: () => process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS,
+    render: (student) => renderAllotmentLetterHtml(student, new Date().toLocaleDateString()),
+};
+
+const messIdCardDocument = {
+    field: "messCardUrl",
+    label: "Mess ID card",
+    folder: () => process.env.FOLDER_NAME_MESS_ID_CARDS || "mess-id-cards",
+    render: renderMessIdCardHtml,
+    pdfOptions: { preferCSSPageSize: true },
+};
+
+const generateStudentDocument = (student, document) => {
+    const folder = document.folder();
+    const fileName = letterIdentifier(student);
+    return generateAndUploadDocument(`${folder}/${fileName}`, () => buildAndStoreStudentDocument(student, {
+        html: document.render(student),
+        folder,
+        fileName,
+        field: document.field,
+        pdfOptions: document.pdfOptions,
+    }));
+};
+
+const serveStudentDocument = async (req, res, document) => {
+    const { field, label } = document;
+    try{
+        const { studentId, regenerate } = req.body;
+        if(!studentId){
+            return res.status(400).json({
+                success: false,
+                message: "Student ID is required.",
+            });
+        }
+
+        const parsedStudentId = parseInt(studentId);
+        if(isNaN(parsedStudentId)){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Student ID provided.",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findUnique({
+            where: { id: parsedStudentId },
+            include: { hostelBlock: true, messHall: true, cot: { include: { room: true } } },
+        });
+
+        if(!studentDetails){
+            return res.status(404).json({
+                success: false,
+                message: "Student not found.",
+            });
+        }
+
+        if(!regenerate && studentDetails[field]){
+            return res.status(200).json({
+                success: true,
+                message: `${label} located.`,
+                data: studentDetails[field],
+            });
+        }
+
+        if(!studentDetails.cot?.room){
+            return res.status(404).json({
+                success: false,
+                message: "No room has been allotted to this student yet.",
+            });
+        }
+
+        const generatedUrl = await generateStudentDocument(studentDetails, document);
+        if(!generatedUrl){
+            return res.status(500).json({
+                success: false,
+                message: `Unable to generate the ${label.toLowerCase()}.`,
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: `${label} generated.`,
+            data: regenerate ? `${generatedUrl}?v=${Date.now()}` : generatedUrl,
+        });
+    }catch(e){
+        console.log(`ERROR WHILE FETCHING ${label.toUpperCase()}:`, e);
+        return res.status(500).json({
+            success: false,
+            message: `Unable to fetch the ${label.toLowerCase()}.`,
+        });
+    }
+};
+
+exports.fetchStudentAllotmentLetter = (req, res) => serveStudentDocument(req, res, allotmentLetterDocument);
+
+exports.fetchStudentMessIdCard = (req, res) => serveStudentDocument(req, res, messIdCardDocument);

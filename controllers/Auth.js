@@ -3,11 +3,12 @@ const bcrypt = require("bcrypt")
 const jwt = require("jsonwebtoken")
 const SendEmail = require("../utilities/MailSender")
 const emailVerification = require('../mailTemplates/emailVerification');
-// const {passwordUpdated} = require('../mailTemplates/passwordUpdate');
+const passwordUpdated = require('../mailTemplates/passwordUpdate');
 const resetPassword = require('../mailTemplates/resetPassword');
 const crypto = require('crypto');
 // const {UploadMedia} = require('../utilities/MediaUploader')
 const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
+const { findRegNoConflict, findRollNoConflict, isDigitsOnly, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 
 const { PrismaClient } = require('@prisma/client');
 const { IS_REGISTRATION_ON, yearWiseStudentList } = require("../config/constants");
@@ -24,12 +25,30 @@ exports.sendOTP = async (req,res) => {
             })
         }
 
-        const {email} = req.body;
+        const {email,rollNo,year} = req.body;
         if(!email){
             return res.status(404).json({
                 success:false,
                 message:"Email is missing",
             })
+        }
+
+        const allowedRolls = yearWiseStudentList[year];
+        if((year != 1) && (!allowedRolls || !allowedRolls.includes(rollNo))){
+            return res.status(403).json({
+                success: false,
+                message: "You have selected invalid year of study, select your current year of study",
+            });
+        }
+
+        if(year != 1){
+            const expectedEmail = `${rollNo}@student.nitandhra.ac.in`;
+            if(email.trim().toLowerCase() !== expectedEmail.toLowerCase()){
+                return res.status(402).json({
+                    success:false,
+                    message:"Use your Institute Email ID for Registration",
+                })
+            }
         }
 
         const isEmailExistsAlready = await Prisma.user.findUnique({where : {email :email}});
@@ -111,7 +130,7 @@ exports.sendOTP = async (req,res) => {
 //                 message:"User Already Registered",
 //             });
 //         };
-        
+
 //         const mostRecentOTP = await Prisma.oTP.findFirst({
 //             where: { email },
 //             orderBy: { createdAt: 'desc' }
@@ -235,13 +254,18 @@ exports.changePassword = async(req,res) => {
         const updatedUser = await Prisma.user.update({where : {id:req.user.id},data:{password:newHashedPassword}});
 
         try{
-            await SendEmail(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
+            await SendEmailProxy(updatedUser.email,"Password Reset Successful | NIT Andhra Pradesh HMS",passwordUpdated(updatedUser.email));
         }catch(e){
             return res.status(400).json({
                 success:false,
                 message:"Error sending Updated Password Email",
             });
         }
+
+        return res.status(200).json({
+            success:true,
+            message:"Password Changed Successfully",
+        })
     }catch(e){
         return res.status(400).json({
             success:false,
@@ -355,7 +379,7 @@ exports.verifyOTP = async(req,res) => {
                 message:"User Already Registered",
             });
         };
-        
+
         const mostRecentOTP = await Prisma.oTP.findFirst({
             where: { email },
             orderBy: { createdAt: 'desc' }
@@ -389,7 +413,7 @@ exports.verifyOTP = async(req,res) => {
 exports.createStudentAccount = async(req,res) => {
     try{
         const {email,password,confirmPassword,name,regNo,rollNo,year,branch,gender,pwd,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,paymentMode,paymentDate,amountPaid,hostelBlockId,cotId} = req.body;
-        const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files;
+        const {image,hostelFeeReceipt,instituteFeeReceipt} = req.files || {};
 
         if(!email || password===null || confirmPassword===null || !name || !regNo || !rollNo || !year || !branch || !gender || pwd===null || !community || !aadhaarNumber || !dob || !bloodGroup || !fatherName || !motherName || phone===null || parentsPhone===null || emergencyPhone===null || !address || !paymentMode || !paymentDate || !amountPaid || hostelBlockId===null || cotId===null){
             return res.status(404).json({
@@ -398,12 +422,21 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        if(!image || !hostelFeeReceipt){
+        if(!image || !hostelFeeReceipt || !instituteFeeReceipt){
             return res.status(404).json({
                 success:false,
-                message:"File Missing",
+                message:"Required file(s) missing!",
             })
         }
+
+        const normalizedPwd = String(pwd ?? "").trim().toLowerCase();
+        if(!["yes", "no"].includes(normalizedPwd)){
+            return res.status(400).json({
+                success:false,
+                message:"Invalid PWD status provided",
+            })
+        }
+        const pwdStatus = normalizedPwd === "yes";
 
         if(password !== confirmPassword){
             return res.status(401).json({
@@ -411,20 +444,6 @@ exports.createStudentAccount = async(req,res) => {
                 message:"Both Passwords are Not Matching",
             })
         }
-
-        if(!email.trim().endsWith("@student.nitandhra.ac.in") && year !== "1"){
-            return res.status(402).json({
-                success:false,
-                message:"Use Institute Email ID for Registration",
-            })
-        }
-
-        // if(!email.trim().endsWith("@student.nitandhra.ac.in")){
-        //     return res.status(402).json({
-        //         success:false,
-        //         message:"Use Institute Email ID for Registration",
-        //     })
-        // }
 
         // HERE MANAGE FOR 1st Year Students
         const allowedRolls = yearWiseStudentList[year];
@@ -435,11 +454,61 @@ exports.createStudentAccount = async(req,res) => {
             });
         }
 
+        if(year !== "1"){
+            const expectedEmail = `${rollNo}@student.nitandhra.ac.in`;
+            if(email.trim().toLowerCase() !== expectedEmail.toLowerCase()){
+                return res.status(402).json({
+                    success:false,
+                    message:"Use your Institute Email ID for Registration",
+                })
+            }
+        }
+
+        // if(!email.trim().endsWith("@student.nitandhra.ac.in")){
+        //     return res.status(402).json({
+        //         success:false,
+        //         message:"Use Institute Email ID for Registration",
+        //     })
+        // }
+
         const ifUserExistsAlready = await Prisma.user.findFirst({where : {email}});
         if(ifUserExistsAlready){
             return res.status(402).json({
                 success:false,
                 message:"User Already Registered",
+            })
+        }
+
+        // Checked before any of the writes below (image upload, cot booking, account creation) so a
+        // rejected registration leaves nothing behind.
+        if(!isDigitsOnly(regNo)){
+            return res.status(402).json({
+                success:false,
+                message:"Registration Number must contain digits only",
+            })
+        }
+
+        const rollNoFormatError = validateRollNoFormat(rollNo);
+        if(rollNoFormatError){
+            return res.status(402).json({
+                success:false,
+                message:rollNoFormatError,
+            })
+        }
+
+        const regNoConflict = await findRegNoConflict(Prisma, regNo);
+        if(regNoConflict){
+            return res.status(402).json({
+                success:false,
+                message:regNoConflict,
+            })
+        }
+
+        const rollNoConflict = await findRollNoConflict(Prisma, rollNo);
+        if(rollNoConflict){
+            return res.status(402).json({
+                success:false,
+                message:rollNoConflict,
             })
         }
 
@@ -467,28 +536,28 @@ exports.createStudentAccount = async(req,res) => {
         }
 
         // FOR OPTIONAL INSTITUTE FEE RECEIPT
-        let uploadedInstituteFeeReceipt = null;
-        if(instituteFeeReceipt){
-            uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
-            if(!uploadedInstituteFeeReceipt){
-                return res.status(400).json({
-                    success:false,
-                    message:"Institite Fee Receipt Upload Failed",
-                })
-            }
-        }
-
-        // FOR COMPULSORY INSTITUTE FEE RECEIPT
-        // const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
-        // if(!uploadedInstituteFeeReceipt){
-        //     return res.status(400).json({
-        //         success:false,
-        //         message:"Institite Fee Receipt Upload Failed",
-        //     })
+        // let uploadedInstituteFeeReceipt = null;
+        // if(instituteFeeReceipt){
+        //     uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_INSTITUTE_FEE_RECEIPTS, rollNo);
+        //     if(!uploadedInstituteFeeReceipt){
+        //         return res.status(400).json({
+        //             success:false,
+        //             message:"Institite Fee Receipt Upload Failed",
+        //         })
+        //     }
         // }
 
+        // FOR COMPULSORY INSTITUTE FEE RECEIPT
+        const uploadedInstituteFeeReceipt = await uploadMediaToS3(instituteFeeReceipt,process.env.FOLDER_NAME_INSTITUTE_FEE_RECEIPTS, rollNo);
+        if(!uploadedInstituteFeeReceipt){
+            return res.status(400).json({
+                success:false,
+                message:"Institite Fee Receipt Upload Failed",
+            })
+        }
+
         // const uploadedHostelFeeReceipt = await UploadMedia(hostelFeeReceipt,process.env.FOLDER_NAME_DOCS);
-        const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_FEE_RECEIPTS, rollNo);
+        const uploadedHostelFeeReceipt = await uploadMediaToS3(hostelFeeReceipt,process.env.FOLDER_NAME_HOSTEL_FEE_RECEIPTS, rollNo);
         if(!uploadedHostelFeeReceipt){
             return res.status(400).json({
                 success:false,
@@ -513,8 +582,8 @@ exports.createStudentAccount = async(req,res) => {
             })
         }
 
-        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
-        // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        // await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwd==="true"?true:false,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt ? uploadedInstituteFeeReceipt?.url : null,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
+        await Prisma.instituteStudent.create({data : {regNo,rollNo,name,image:uploadedImage?.url,year,branch,gender,pwd:pwdStatus,community,aadhaarNumber,dob,bloodGroup,fatherName,motherName,phone,parentsPhone,emergencyPhone,address,instituteFeeReceipt:uploadedInstituteFeeReceipt?.url,hostelFeeReceipt:uploadedHostelFeeReceipt?.url,paymentDate,amountPaid,paymentMode,outingRating:5.0,disciplineRating:5.0,userId,hostelBlockId:parseInt(hostelBlockId),cotId:parseInt(cotId)}});
 
         await Prisma.cot.update({where : {id:parseInt(cotId)}, data : {status:"BLOCKED"}});
 

@@ -6,35 +6,38 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "create-admin": "node scripts/create-admin.mjs",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.842.0",
-    "@prisma/client": "^5.12.1",
-    "bcrypt": "^5.1.1",
-    "bcryptjs": "^2.4.3",
-    "body-parser": "^1.20.2",
-    "cloudinary": "^2.1.0",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "crypto": "^1.0.1",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-fileupload": "^1.5.0",
-    "fs": "^0.0.1-security",
-    "jsonwebtoken": "^9.0.2",
-    "nodemailer": "^6.9.13",
+    "@aws-sdk/client-s3": "^3.1107.0",
+    "@aws-sdk/client-ses": "^3.1107.0",
+    "@prisma/client": "^5.22.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.2",
+    "express-fileupload": "^1.5.2",
+    "express-rate-limit": "^8.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^9.0.5",
     "otp-generator": "^4.0.1",
-    "postgres": "^3.4.4",
-    "puppeteer": "^22.12.1",
-    "puppeteer-core": "^22.12.1",
-    "qrcode": "^1.5.3",
-    "xlsx": "^0.18.5"
+    "puppeteer": "^22.15.0",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
-    "prisma": "^5.12.1"
+    "prisma": "^5.22.0"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "bcrypt@6.0.0": true,
+    "prisma@5.22.0": true,
+    "puppeteer@22.15.0": true
   }
 }

@@ -1,7 +1,12 @@
 const nodemailer = require("nodemailer")
+const SendEmailUsingSES = require("./SESMailSender");
 
 const SendEmailProxy = async(email,title,body,attachmentPath,attachmentName) => {
     try{
+        if (process.env.MAIL_PROVIDER?.toLowerCase() === "ses") {
+            return await SendEmailUsingSES(email,title,body,attachmentPath,attachmentName);
+        }
+
         const transporter = nodemailer.createTransport({
             pool:true,
             service : process.env.MAIL_HOST1,

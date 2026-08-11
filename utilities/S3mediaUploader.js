@@ -1,7 +1,25 @@
 const s3Client = require('../config/s3');
 const fs = require('fs');
 const path = require('path');
-const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const { PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+
+// TODO: Migrate to signed URLs
+const buildS3ObjectUrl = (key) =>
+  `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+exports.buildS3ObjectUrl = buildS3ObjectUrl;
+
+exports.s3ObjectExists = async (key) => {
+  try {
+    await s3Client.send(new HeadObjectCommand({ Bucket: process.env.S3_BUCKET_NAME, Key: key }));
+    return true;
+  } catch (error) {
+    if (error?.name === 'NotFound' || error?.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    throw error;
+  }
+};
 
 exports.uploadMediaToS3 = async (file, folder = 'extras', filename = null, height = null, quality = null) => {
   try {
@@ -24,7 +42,7 @@ exports.uploadMediaToS3 = async (file, folder = 'extras', filename = null, heigh
     });
 
     await s3Client.send(command);
-    const url = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${finalFileName}`;
+    const url = buildS3ObjectUrl(finalFileName);
 
     return {
       success: true,

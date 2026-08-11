@@ -1,4 +1,4 @@
-const resetPassword = (token) => {
+const passwordUpdated = (email) => {
 	return `<!DOCTYPE html>
     <html>
 
@@ -54,12 +54,6 @@ const resetPassword = (token) => {
                 font-weight:600;
                 margin-bottom:30px;
             }
-            .token{
-                color:black;
-                font-size:32px;
-                font-weight:900;
-                margin:0px auto;
-            }
         </style>
 
     </head>
@@ -68,20 +62,19 @@ const resetPassword = (token) => {
         <div class="container">
         <a href="https://www.nitandhra.ac.in/main/"><img class="logo"
             src="https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png" alt="NITAP Logo"></a>
-            <div class="message">Reset Password Token</div>
+            <div class="message">Password Updated Successfully</div>
             <div class="body">
-                <div class="heading">Copy and paste the below token to proceed with resetting of your account password.</div>
-                <p class="token">${token}</p>
-                </p>
+                <div class="heading">The password for your account has been updated.</div>
+                <p>Your password has been successfully changed for the account associated with <span class="highlight">${email}</span>.</p>
                 <p>If you did not request this password change, please contact us immediately to secure your account.</p>
             </div>
+            <div class="support">If you have any questions or need further assistance, please reach out to us at
                 <a href="mailto:nitandhrahms@gmail.com">nitandhrahms@gmail.com</a>. We are here to help!
             </div>
-
         </div>
     </body>
 
     </html>`;
 };
 
-module.exports = resetPassword;
+module.exports = passwordUpdated;

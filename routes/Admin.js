@@ -1,8 +1,22 @@
 const express = require("express");
 const router = express.Router();
+const rateLimit = require("express-rate-limit");
 
 const {authMiddlewares} = require("../middlewares");
 const {adminController} = require('../controllers');
+
+const bulkExportLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // limit each admin to 20 bulk exports per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    keyGenerator: (req) => String(req.user?.id ?? "unknown"),
+    validate: { keyGeneratorIpFallback: false },
+    message: {
+        success: false,
+        message: "Too many export requests. Please try again after some time.",
+    },
+});
 
 router.post('/createHostelBlock',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.createHostelBlock);
 router.delete('/deleteHostelBlock',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteHostelBlock);
@@ -26,6 +40,10 @@ router.put('/sendAcknowledgementLetter',authMiddlewares.auth,authMiddlewares.isA
 router.post('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchRoomsInHostelBlock);
 router.post('/fetchCotsInRooms',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsInRooms);
 router.post('/fetchStudentByRollNoAndRegNo',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentByRollNoAndRegNo);
+router.post('/fetchAllStudents',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchAllStudents);
+router.post('/fetchStudentAllotmentLetter',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentAllotmentLetter);
+router.post('/fetchStudentMessIdCard',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentMessIdCard);
+router.post('/exportStudentsXlsxFile',authMiddlewares.auth,authMiddlewares.isAdmin,bulkExportLimiter,adminController.exportStudentsXlsxFile);
 router.post('/downloadStudentDetailsInHostelBlockXlsxFile',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.downloadStudentDetailsInHostelBlockXlsxFile);
 router.delete('/deleteStudentAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteStudentAccount);
 router.post('/fetchCotsForChangeCotOption',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsForChangeCotOption);

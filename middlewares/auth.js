@@ -16,6 +16,12 @@ exports.auth = async (req,res,next) => {
 
         try{
             const decode = jwt.verify(token,process.env.JWT_SECRET);
+            if(decode.purpose === "fix-docs"){
+                return res.status(401).json({
+                    success:false,
+                    message:"Token is Invalid",
+                })
+            }
             req.user = decode;
         }catch(e){
             return res.status(400).json({
@@ -30,6 +36,51 @@ exports.auth = async (req,res,next) => {
             success:false,
             message:"Error Occured while Authorization",
         })
+    }
+}
+
+exports.isFixDocToken = async (req,res,next) => {
+    try{
+        const token = req.body?.token || (req.header("Authorization") ? req.header("Authorization").replace("Bearer ","") : null);
+        if(!token){
+            return res.status(404).json({
+                success:false,
+                message:"Token Not Found",
+            });
+        }
+
+        let decode;
+        try{
+            decode = jwt.verify(token,process.env.JWT_SECRET);
+        }catch(e){
+            return res.status(400).json({
+                success:false,
+                message:"Token is Invalid",
+            });
+        }
+
+        if(decode.purpose !== "fix-docs" || !decode.id){
+            return res.status(401).json({
+                success:false,
+                message:"Token not authorized for this action",
+            });
+        }
+
+        const fixRecord = await Prisma.fixCorruptDoc.findUnique({where : {userId : decode.id}});
+        if(!fixRecord || fixRecord.isFixed || fixRecord.token !== token){
+            return res.status(401).json({
+                success:false,
+                message:"Session invalid or already used",
+            });
+        }
+
+        req.user = { id: decode.id };
+        next();
+    }catch(e){
+        return res.status(400).json({
+            success:false,
+            message:"Error Occured while Authorization",
+        });
     }
 }
 
@@ -49,7 +100,7 @@ exports.isAdmin = async (req,res,next) => {
             "/createNewStudentFirstYear",
             "/fetchFirstYearStudentApplications",
             "/getDashboardData"
-        ];        
+        ];
         if((details.id === restrictedAdminId) && !allowedDummyAdminRoutes.includes(req.path)){
             return res.status(403).json({
                 success: false,
