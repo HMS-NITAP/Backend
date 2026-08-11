@@ -41,6 +41,7 @@ router.post('/fetchRoomsInHostelBlock',authMiddlewares.auth,authMiddlewares.isAd
 router.post('/fetchCotsInRooms',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchCotsInRooms);
 router.post('/fetchStudentByRollNoAndRegNo',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentByRollNoAndRegNo);
 router.post('/fetchAllStudents',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchAllStudents);
+router.post('/fetchStudentAllotmentLetter',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.fetchStudentAllotmentLetter);
 router.post('/exportStudentsXlsxFile',authMiddlewares.auth,authMiddlewares.isAdmin,bulkExportLimiter,adminController.exportStudentsXlsxFile);
 router.post('/downloadStudentDetailsInHostelBlockXlsxFile',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.downloadStudentDetailsInHostelBlockXlsxFile);
 router.delete('/deleteStudentAccount',authMiddlewares.auth,authMiddlewares.isAdmin,adminController.deleteStudentAccount);

@@ -13,7 +13,7 @@ const XLSX = require('xlsx');
 const evenSemAcknowledgementAttachement = require('../mailTemplates/evenSemAcknowledgementAttachement');
 const evenSemAcknowledgementLetter = require('../mailTemplates/evenSemAcknowledgementLetter');
 const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter');
-const { uploadMediaToS3 } = require('../utilities/S3mediaUploader');
+const { uploadMediaToS3, buildS3ObjectUrl, s3ObjectExists } = require('../utilities/S3mediaUploader');
 const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
 
 exports.createHostelBlock = async(req,res) => {
@@ -2255,5 +2255,66 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
             success: false,
             message: "Failed to allot room for the student.",
         })
+    }
+}
+
+exports.fetchStudentAllotmentLetter = async (req, res) => {
+    try{
+        const { studentId } = req.body;
+        if(!studentId){
+            return res.status(400).json({
+                success: false,
+                message: "Student ID is required.",
+            });
+        }
+
+        const parsedStudentId = parseInt(studentId);
+        if(isNaN(parsedStudentId)){
+            return res.status(400).json({
+                success: false,
+                message: "Invalid Student ID provided.",
+            });
+        }
+
+        const studentDetails = await Prisma.instituteStudent.findUnique({
+            where: { id: parsedStudentId },
+            select: { rollNo: true, cotId: true },
+        });
+
+        if(!studentDetails){
+            return res.status(404).json({
+                success: false,
+                message: "Student not found.",
+            });
+        }
+
+        if(!studentDetails.rollNo){
+            return res.status(404).json({
+                success: false,
+                message: "Student has no roll number, so no allotment letter exists.",
+            });
+        }
+
+        const letterKey = `${process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS}/${studentDetails.rollNo}.pdf`;
+        if(!(await s3ObjectExists(letterKey))){
+            return res.status(404).json({
+                success: false,
+                message: studentDetails.cotId
+                    ? "No allotment letter found for this student."
+                    : "No room has been allotted to this student yet.",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Allotment letter located.",
+            data: buildS3ObjectUrl(letterKey),
+        });
+    }catch(e){
+        console.log("ERROR WHILE FETCHING ALLOTMENT LETTER:", e);
+        return res.status(500).json({
+            success: false,
+            message: "Unable to fetch the allotment letter.",
+        });
     }
 }
