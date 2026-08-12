@@ -1,4 +1,7 @@
-const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,amount,blockName,roomNo,cotNo,gender,floor) => {
+const { formatDate } = require('../utilities/DateFormat');
+
+const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,amount,blockName,roomNo,cotNo,gender,floor,dateOfJoining) => {
+    const joiningDate = formatDate(dateOfJoining);
     return `<!DOCTYPE html>
 	<html>
         <head>
@@ -141,6 +144,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                         <div>Name: ${name}</div>
                         <div>B.Tech Year: ${year}</div>
                         <div>Roll No: ${rollNo}</div>
+                        <div>Date of Joining: ${joiningDate}</div>
                     </div>
 
                     <div class="grid-item">
@@ -193,6 +197,7 @@ const firstYearAcknowlegdementLetterAttachment = (date,name,year,rollNo,regNo,am
                         <div>Name: ${name}</div>
                         <div>B.Tech Year: ${year}</div>
                         <div>Roll No: ${rollNo}</div>
+                        <div>Date of Joining: ${joiningDate}</div>
                     </div>
 
                     <div class="grid-item">
