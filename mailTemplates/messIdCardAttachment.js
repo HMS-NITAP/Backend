@@ -1,3 +1,5 @@
+const { latoFontFaceCss } = require("./fonts");
+
 const INSTITUTE_LOGO_URL = "https://res.cloudinary.com/dwt1vmf2u/image/upload/v1720685383/logo_jfjskg.png";
 
 const CARD_WIDTH = "88.9mm";
@@ -9,8 +11,9 @@ const messIdCardAttachment = ({ serialNo, image, name, rollNo, course, branch, c
         <head>
             <meta charset="UTF-8">
             <title>Mess ID Card</title>
-            <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;500;700&display=swap" rel="stylesheet">
             <style>
+                ${latoFontFaceCss}
+
                 @page {
                     size: ${CARD_WIDTH} ${CARD_HEIGHT};
                     margin: 0;

@@ -22,6 +22,9 @@ const PdfGenerator = async (htmlContent, filename, pdfOptions = {}) => {
 
         await page.setContent(signedHtml, { waitUntil: 'networkidle0' });
 
+        // networkidle0 does not cover webfont loading
+        await page.evaluate(() => document.fonts.ready);
+
         // Generate PDF
         const pdfPath = path.join(__dirname, filename);
         await page.pdf({ path: pdfPath, format: 'A4', printBackground: true, ...pdfOptions });
