@@ -16,6 +16,7 @@ const evenSemRejectionLetter = require('../mailTemplates/evenSemRejectionLetter'
 const { uploadMediaToS3, buildS3ObjectUrl, s3ObjectExists } = require('../utilities/S3mediaUploader');
 const { findRegNoConflict, findRollNoConflict, validateRollNoFormat } = require('../utilities/StudentIdentifiers');
 const firstYearAcknowlegdementLetterAttachment = require('../mailTemplates/firstYearAcknowlegdementLetterAttachment');
+const { formatDate } = require('../utilities/DateFormat');
 const messIdCardAttachment = require('../mailTemplates/messIdCardAttachment');
 
 exports.createHostelBlock = async(req,res) => {
@@ -405,7 +406,7 @@ exports.acceptRegistrationApplication = async(req,res) => {
 
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION - ${studentDetails?.rollNo} | NIT ANDHRA PRADESH`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             // await SendEmail("hosteloffice@nitandhra.ac.in",`${studentDetails?.rollNo} - HMS 1st Year Confirmation  | NIT Andhra Pradesh`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
@@ -610,7 +611,7 @@ exports.confirmFreezedStudentRegistration = async(req,res) => {
 
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
             const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo,studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,`HOSTEL ALLOTMENT CONFIRMATION - ${studentDetails?.rollNo} | NIT ANDHRA PRADESH`,acknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
@@ -889,7 +890,7 @@ exports.sendAcknowledgementLetter = async(req,res) => {
 
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
             if(studentDetails?.hostelFeeReceipt2 === null){
                 // ODD SEM
                 const pdfPath = await PdfGenerator(acknowledgementAttachment(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
@@ -1677,7 +1678,7 @@ exports.acceptEvenSemRegistrationApplication = async(req,res) => {
 
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
             const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
@@ -1812,7 +1813,7 @@ exports.sendAcknowledgementLetterEvenSem = async(req,res) => {
 
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
             const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
             await SendEmail("tanneriabhiram@gmail.com","HOSTEL ALLOTMENT CONFIRMATION EVEN SEM | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
@@ -2288,11 +2289,11 @@ exports.allotRoomForStudentFirstYear = async(req,res) => {
         let uploadedPdf = null;
         try{
             let date = new Date();
-            date = date.toLocaleDateString();
+            date = formatDate(date);
 
             // Falls back to the registration number for first years without a roll number yet.
             const letterName = letterIdentifier(studentDetails);
-            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${letterName}.pdf`);
+            const pdfPath = await PdfGenerator(firstYearAcknowlegdementLetterAttachment(date,studentDetails?.name,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.amountPaid,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber, studentDetails?.dateOfJoining), `${letterName}.pdf`);
             const dummyFile = { tempFilePath: pdfPath, name: `${letterName}.pdf`, mimetype: "application/pdf" };
             uploadedPdf = await uploadMediaToS3(dummyFile, process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS, letterName);
             if(!uploadedPdf){
@@ -2346,7 +2347,7 @@ const renderAllotmentLetterHtml = (student, date) => {
     if(student.paymentMode){
         return acknowledgementAttachment(date, student.image, student.name, student.phone, student.year, student.rollNo, student.regNo, student.paymentMode, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
     }
-    return firstYearAcknowlegdementLetterAttachment(date, student.name, student.year, student.rollNo, student.regNo, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber);
+    return firstYearAcknowlegdementLetterAttachment(date, student.name, student.year, student.rollNo, student.regNo, student.amountPaid, student.hostelBlock?.name, room?.roomNumber, student.cot?.cotNo, student.gender, room?.floorNumber, student.dateOfJoining);
 };
 
 const printable = (value) => (value === null || value === undefined || value === "" ? "-" : value);
@@ -2414,7 +2415,7 @@ const allotmentLetterDocument = {
     field: "allotmentLetterUrl",
     label: "Allotment letter",
     folder: () => process.env.FOLDER_NAME_ACKNOWLEDGEMENT_LETTERS,
-    render: (student) => renderAllotmentLetterHtml(student, new Date().toLocaleDateString()),
+    render: (student) => renderAllotmentLetterHtml(student, formatDate(new Date())),
 };
 
 const messIdCardDocument = {

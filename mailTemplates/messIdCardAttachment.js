@@ -157,6 +157,7 @@ const messIdCardAttachment = ({ serialNo, image, name, rollNo, course, branch, c
                     border-collapse: collapse;
                     margin-top: auto;
                     padding-top: 3.6mm;
+                    table-layout: fixed;
                 }
 
                 .signatures td {

@@ -621,8 +621,8 @@ exports.fetchStudentMessReceipts = async(req,res) => {
 
         const now = new Date();
         const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Kolkata' };
-        const [mm, dd, yyyy] = now.toLocaleDateString('en-CA', options).split('/');
-        const localDate = `${yyyy}-${mm}-${dd}`;
+        // en-CA already yields YYYY-MM-DD, which is the key format the receipt write path stores.
+        const localDate = now.toLocaleDateString('en-CA', options);
 
         const entry = availed[localDate] || {};
 
