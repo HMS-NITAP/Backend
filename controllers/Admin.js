@@ -1815,7 +1815,7 @@ exports.sendAcknowledgementLetterEvenSem = async(req,res) => {
             let date = new Date();
             date = formatDate(date);
             const pdfPath = await PdfGenerator(evenSemAcknowledgementAttachement(date,studentDetails?.image,studentDetails?.name,studentDetails?.phone,studentDetails?.year,studentDetails?.rollNo,studentDetails?.regNo,studentDetails?.paymentMode2,studentDetails?.amountPaid2,studentDetails?.hostelBlock?.name,cotDetails?.room?.roomNumber,cotDetails?.cotNo, studentDetails?.gender, cotDetails?.room?.floorNumber), `${studentDetails?.rollNo}.pdf`);
-            await SendEmail("tanneriabhiram@gmail.com","HOSTEL ALLOTMENT CONFIRMATION EVEN SEM | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
+            await SendEmail(userDetails?.email,"HOSTEL ALLOTMENT CONFIRMATION EVEN SEM | NIT ANDHRA PRADESH",evenSemAcknowledgementLetter(),pdfPath,`${studentDetails?.rollNo}.pdf`);
             fs.unlinkSync(pdfPath);
         }catch(e){
             console.log(e);
