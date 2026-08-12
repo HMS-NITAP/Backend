@@ -12,7 +12,7 @@ const PdfGenerator = async (htmlContent, filename, pdfOptions = {}) => {
         const browser = await puppeteer.launch({
             headless: true,
             // executablePath: '/usr/bin/google-chrome', // Adjust this path if necessary
-            args: ['--no-sandbox', '--headless', '--disable-gpu', '--disable-dev-shm-usage'],
+            args: ['--no-sandbox', '--headless', '--disable-gpu', '--disable-dev-shm-usage', '--font-render-hinting=none'],
         });
 
         const page = await browser.newPage();
