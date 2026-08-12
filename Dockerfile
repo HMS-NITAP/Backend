@@ -1,10 +1,10 @@
-FROM node:latest
+FROM node:22-bookworm
 
-WORKDIR /
+WORKDIR /app
 
 COPY package.json package-lock.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
