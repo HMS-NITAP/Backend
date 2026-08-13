@@ -1070,8 +1070,9 @@ const STUDENT_FULL_EXPORT_INCLUDE = {
 };
 
 const STUDENT_LIST_ORDER_BY = [
-    { hostelBlock: { name: 'asc' } },
-    { rollNo: 'asc' },
+    { id: 'asc' },
+    // { hostelBlock: { name: 'asc' } },
+    // { rollNo: 'asc' },
 ];
 
 // Shared by the paginated list and the xlsx export so both always agree on what "matches the filters" means.
